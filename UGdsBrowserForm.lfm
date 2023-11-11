@@ -1,0 +1,104 @@
+object GdsBrowserForm: TGdsBrowserForm
+  Left = 2484
+  Height = 517
+  Top = 676
+  Width = 483
+  Caption = 'GdsFeel'
+  ClientHeight = 492
+  ClientWidth = 483
+  Menu = MainMenu
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Position = poScreenCenter
+  LCLVersion = '2.2.6.0'
+  object GdsFileNameLabel: TLabel
+    Left = 0
+    Height = 19
+    Top = 0
+    Width = 483
+    Align = alTop
+    AutoSize = False
+    ParentColor = False
+    OnClick = GdsFileNameLabelClick
+  end
+  object BrowserPanel: TPanel
+    AnchorSideTop.Control = GdsFileNameLabel
+    Left = 0
+    Height = 473
+    Top = 19
+    Width = 483
+    Align = alClient
+    ChildSizing.EnlargeHorizontal = crsScaleChilds
+    ChildSizing.EnlargeVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 3
+    ClientHeight = 473
+    ClientWidth = 483
+    TabOrder = 0
+    OnClick = BrowserPanelClick
+    object StructureListBox: TListBox
+      Left = 0
+      Height = 473
+      Top = 0
+      Width = 108
+      ItemHeight = 0
+      OnSelectionChange = StructureListBoxSelectionChange
+      TabOrder = 0
+      TopIndex = -1
+    end
+    object ElementListBox: TListBox
+      Left = 108
+      Height = 473
+      Top = 0
+      Width = 107
+      ItemHeight = 0
+      OnSelectionChange = ElementListBoxSelectionChange
+      TabOrder = 1
+      TopIndex = -1
+    end
+    object XYListView: TListView
+      Left = 215
+      Height = 473
+      Top = 0
+      Width = 268
+      AutoSort = False
+      Columns = <      
+        item
+          Width = 10
+        end      
+        item
+          Alignment = taRightJustify
+          Caption = 'X'
+          MinWidth = 80
+          Width = 100
+        end      
+        item
+          Alignment = taRightJustify
+          Caption = 'Y'
+          MinWidth = 80
+          Width = 143
+        end>
+      Constraints.MinWidth = 200
+      GridLines = True
+      ReadOnly = True
+      RowSelect = True
+      TabOrder = 2
+      ViewStyle = vsReport
+    end
+  end
+  object OpenGdsDialog: TOpenDialog
+    Left = 224
+    Top = 16
+  end
+  object MainMenu: TMainMenu
+    Left = 344
+    Top = 24
+    object FileMenu: TMenuItem
+      Caption = 'File'
+      object ChooseGdsMenuItem: TMenuItem
+        Caption = 'Choose GDS file ...'
+        OnClick = OpenGdsFile
+      end
+    end
+  end
+end
