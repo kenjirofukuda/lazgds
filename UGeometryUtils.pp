@@ -37,6 +37,8 @@ function PointF(X, Y: single): TPointF;
 function RectangleF(X1, Y1, X2, Y2: single): TRectangleF;
 function RectangleF(P1, P2: TPointF): TRectangleF;
 function EmptyRectangleF: TRectangleF;
+function CalcExtent(Points: TXYPointList): TRectangleF;
+
 
 implementation
 
@@ -124,12 +126,27 @@ begin
   Result.Corner.y := single.MinValue;
 end;
 
+
 function TRectangleF.CornerPoints: TPointF4;
 begin
   Result[0] := Origin;
   Result[1] := PointF(Origin.x, Corner.y);
   Result[2] := Corner;
   Result[3] := PointF(Corner.x, Origin.y);
+end;
+
+
+function CalcExtent(Points: TXYPointList): TRectangleF;
+var P: TPointF;
+begin
+   Result := EmptyRectangleF;
+   for P in Points do
+   begin
+     Result.Origin.x := Min(P.x, Result.Origin.x);
+     Result.Origin.y := Min(P.y, Result.Origin.y);
+     Result.Corner.x := Max(P.x, Result.Corner.x);
+     Result.Corner.y := Max(P.x, Result.Corner.y);
+   end;
 end;
 
 end.

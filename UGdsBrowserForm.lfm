@@ -1,7 +1,7 @@
 object GdsBrowserForm: TGdsBrowserForm
-  Left = 284
+  Left = 248
   Height = 894
-  Top = 964
+  Top = 831
   Width = 1266
   Caption = 'GdsFeel'
   ClientHeight = 894
@@ -37,7 +37,6 @@ object GdsBrowserForm: TGdsBrowserForm
     ParentBackground = False
     ParentColor = False
     TabOrder = 0
-    OnClick = BrowserPanelClick
     object StructureListBox: TListBox
       AnchorSideBottom.Control = BrowserPanel
       AnchorSideBottom.Side = asrBottom
@@ -91,6 +90,7 @@ object GdsBrowserForm: TGdsBrowserForm
       ReadOnly = True
       RowSelect = True
       TabOrder = 1
+      Visible = False
       ViewStyle = vsReport
     end
     object ElementListBox: TListBox

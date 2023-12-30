@@ -27,7 +27,6 @@ type
     Separator1: TMenuItem;
     QuitMenuItem: TMenuItem;
 
-    procedure BrowserPanelClick(Sender: TObject);
     procedure QuitMenuItemClick(Sender: TObject);
     procedure OpenGdsFile(Sender: TObject);
 
@@ -55,7 +54,7 @@ implementation
 {$R *.lfm}
 
 uses
-  UUtils, LazLogger;
+  LazLogger;
 
 { TGdsBrowserForm }
 
@@ -88,11 +87,6 @@ end;
 procedure TGdsBrowserForm.QuitMenuItemClick(Sender: TObject);
 begin
   GdsBrowserForm.Close;
-end;
-
-procedure TGdsBrowserForm.BrowserPanelClick(Sender: TObject);
-begin
-
 end;
 
 
@@ -147,6 +141,7 @@ begin
     Exit;
   S := StructureListBox.Items.Objects[i] as TGdsStructure;
   GdsStation.GdsStructure := S;
+  FGdsView.Invalidate;
   ElementListBox.Clear;
   XYListView.Clear;
   for E in S.Elements do

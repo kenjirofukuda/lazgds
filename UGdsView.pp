@@ -5,7 +5,7 @@ unit UGdsView;
 interface
 
 uses
-  Classes, SysUtils, Graphics, UWorldView;
+  Classes, SysUtils, Graphics, UWorldView, UGdsStation;
 
 type
   TGdsView = class(TWorldView)
@@ -21,7 +21,10 @@ begin
   Canvas.Brush.Color := clBlack;
   Canvas.Clear;
   Canvas.Pen.Color := clWhite;
-  Canvas.Line(0, 0, ClientWidth, ClientHeight);
+  if GdsStation.GdsStructure = nil then
+     Exit;
+  // Canvas.Brush.Color := clWhite;
+  Canvas.TextOut(10, 10, GdsStation.GdsStructure.Name);
 end;
 
 end.

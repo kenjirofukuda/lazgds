@@ -6,7 +6,7 @@ interface
 
 
 uses
-  Classes, SysUtils, fgl;
+  Classes, SysUtils, Types, fgl, UGeometryUtils;
 
 const
   dtNODATA = $00;
@@ -36,14 +36,14 @@ const
   htENDEL = $11;
 
 type
-  TInt16s = array of Int16;
-  TInt32s = array of Int32;
-  TDoubles = array of Double;
-  TXY = array [0 .. 1] of Double;
+  TInt16s = array of int16;
+  TInt32s = array of int32;
+  TDoubles = array of double;
+  TXY = array [0 .. 1] of double;
   TCoords = array of TXY;
 
   TDateTimeItems = record
-    items: array [0 .. 5] of Word;
+    items: array [0 .. 5] of word;
   end;
 
   { TGdsObject }
@@ -52,26 +52,32 @@ type
   private
     FParent: TGdsObject;
   protected
-    function ShortClassName: String;
+    function ShortClassName: string;
   public
-    function ToString: String; override;
+    function ToString: string; override;
     function GetRoot: TGdsObject;
     property Parent: TGdsObject read FParent;
   end;
 
-  {  }
+
 
   TGdsElement = class(TGdsObject)
   private
     FXY: TInt32s;
     FCoords: TCoords;
+    FExtentBounds: TRectangleF;
+    FExtentBoundsPtr: ^TRectangleF;
   public
-    class function CreateFromHeaderByte(AByte: Byte): TGdsElement;
+    class function CreateFromHeaderByte(AByte: byte): TGdsElement;
     destructor Destroy; override;
-    function ToString: String; override;
+    function ToString: string; override;
     function GetCoords: TCoords;
-    //property XY: TInt32s read FXY;
+    function GetExtentBounds: TRectangleF;
+    function IsReference: boolean; virtual;
+  public
     property Coords: TCoords read GetCoords;
+  protected
+    function LookupExtentBounds: TRectangleF; virtual;
   private
     function LookupCoords: TCoords;
   end;
@@ -86,18 +92,24 @@ type
 
   TGdsText = class(TGdsElement)
   private
-    FContents: String;
+    FContents: string;
   public
-    function ToString: String; override;
-    property Contents: String read FContents;
+    function ToString: string; override;
+    property Contents: string read FContents;
   end;
+
+  TGdsStructure = class;
 
   TGdsSref = class(TGdsElement)
   private
-    FRefName: String;
+    FRefName: string;
+    FRefStructure: TGdsStructure;
   public
-    function ToString: String; override;
-    property RefName: String read FRefName;
+    function ToString: string; override;
+    function IsReference: boolean; override;
+    function GetRefStructure: TGdsStructure;
+    property RefName: string read FRefName;
+    property RefStructure: TGdsStructure read GetRefStructure;
   end;
 
   TGdsAref = class(TGdsSref)
@@ -113,32 +125,38 @@ type
 
   TGdsStructure = class(TGdsObject)
   private
-    FName: String;
+    FName: string;
     FCreated: TDateTimeItems;
     FLastModified: TDateTimeItems;
     FElements: TGdsElements;
   public
     constructor Create;
     destructor Destroy; override;
-    property Name: String read FName;
+    property Name: string read FName;
     property Elements: TGdsElements read FElements;
+  public
+    procedure SplitElements(Primitives: TGdsElements; Others: TGdsElements);
   end;
 
   TGdsStructures = specialize TFPGObjectList<TGdsStructure>;
+  TGdsStructureMap = specialize TFPGMapObject<string, TGdsStructure>;
 
   TGdsLibrary = class(TGdsObject)
   private
-    FName: String;
+    FName: string;
     FLastModified: TDateTimeItems;
     FLastAccessed: TDateTimeItems;
-    FUserUnit: Double;
-    FMeterUnit: Double;
+    FUserUnit: double;
+    FMeterUnit: double;
     FStructures: TGdsStructures;
+    FStructureMap: TGdsStructureMap;
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Add(Structure: TGdsStructure);
     function StructureNames: TStringArray;
-    property Name: String read FName;
+    function StructureNamed(Name: string): TGdsStructure;
+    property Name: string read FName;
     property Structures: TGdsStructures read FStructures;
   end;
 
@@ -154,15 +172,15 @@ type
     FLibrary: TGdsLibrary;
     FStructure: TGdsStructure;
     FElement: TGdsElement;
-    FFileName: String;
+    FFileName: string;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Execute;
-    property FileName: String read FFileName write FFileName;
+    property FileName: string read FFileName write FFileName;
     property OnBytes: TGdsInformBytesEvent read FOnBytes write FOnBytes;
     property GdsLibrary: TGdsLibrary read FLibrary;
-    function ExtractAscii(const ABytes: TBytes): String;
+    function ExtractAscii(const ABytes: TBytes): string;
   private
     procedure HandleRecord(const ABytes: TBytes);
     function ExtractInt2(const ABytes: TBytes): TInt16s;
@@ -170,18 +188,19 @@ type
     function ExtractReal8(const ABytes: TBytes): TDoubles;
   end;
 
-function FileSizeEx(const AFileName: String): Longint;
+function FileSizeEx(const AFileName: string): longint;
+function CalcBounds(Coords: TCoords): TRectangleF;
 
 implementation
 
 uses
   UUtils, Math, LazLogger;
 
-{ GDSreader }
+  { GDSreader }
 
 // @note
 // serbanp@ix.netcom.com's GDSreader.0.3.2
-function GDSreadInt2(rec: PByte): Int16;
+function GDSreadInt2(rec: pbyte): int16;
 begin
   Result := rec[0];
   Result := Result shl 8;
@@ -195,9 +214,10 @@ begin
   end;
 end;
 
-function GDSreadInt4(rec: PByte): Int32;
+
+function GDSreadInt4(rec: pbyte): int32;
 var
-  i: Integer;
+  i: integer;
 begin
   Result := 0;
   for i := 0 to 3 do
@@ -214,11 +234,12 @@ begin
   end;
 end;
 
-function GDSreadReal8(rec: PByte): Double;
+
+function GDSreadReal8(rec: pbyte): double;
 var
-  i, sign, exponent: Integer;
-  mantissa_int: Uint64;
-  mantissa_float: Double;
+  i, sign, exponent: integer;
+  mantissa_int: uint64;
+  mantissa_float: double;
 begin
   sign := rec[0] and $80;
   exponent := (rec[0] and $7F) - 64;
@@ -228,24 +249,51 @@ begin
     mantissa_int := mantissa_int shl 8;
     Inc(mantissa_int, rec[i]);
   end;
-  mantissa_float := Double(mantissa_int) / Power(2, 56);
+  mantissa_float := double(mantissa_int) / Power(2, 56);
   Result := mantissa_float * Power(16, exponent);
   if sign <> 0 then
     Result := -Result;
 end;
 
+
+function CalcBounds(Coords: TCoords): TRectangleF;
+var
+  P: TPointF;
+  i: integer;
+begin
+  Result := EmptyRectangleF;
+  for i := 0 to High(Coords) do
+  begin
+    P := PointF(single(Coords[i][0]), single(Coords[i][1]));
+    Result.Origin.x := Min(P.x, Result.Origin.x);
+    Result.Origin.y := Min(P.y, Result.Origin.y);
+    Result.Corner.x := Max(P.x, Result.Corner.x);
+    Result.Corner.y := Max(P.x, Result.Corner.y);
+  end;
+end;
 { TGdsLibrary }
 
 constructor TGdsLibrary.Create;
 begin
   inherited;
   FStructures := TGdsStructures.Create;
+  FStructureMap := TGdsStructureMap.Create;
 end;
+
 
 destructor TGdsLibrary.Destroy;
 begin
+  FreeAndNil(FStructureMap);
   FreeAndNil(FStructures);
   inherited;
+end;
+
+
+procedure TGdsLibrary.Add(Structure: TGdsStructure);
+begin
+  FStructures.Add(Structure);
+  FStructureMap.Add(Structure.Name, Structure);
+  Structure.FParent := self;
 end;
 
 
@@ -263,6 +311,12 @@ begin
   FreeAndNil(names);
 end;
 
+
+function TGdsLibrary.StructureNamed(Name: string): TGdsStructure;
+begin
+  Result := FStructureMap.KeyData[Name];
+end;
+
 { TGdsStructure }
 
 constructor TGdsStructure.Create;
@@ -271,12 +325,36 @@ begin
   FElements := TGdsElements.Create;
 end;
 
+
 destructor TGdsStructure.Destroy;
 begin
   FreeAndNil(FElements);
   inherited;
 end;
 
+
+procedure TGdsStructure.SplitElements(Primitives: TGdsElements; Others: TGdsElements);
+var
+  E: TGdsElement;
+begin
+  for E in FElements do
+  begin
+    if E.IsReference then
+    begin
+      if Others <> nil then
+      begin
+        Others.Add(E);
+      end;
+    end
+    else
+    begin
+      if Primitives <> nil then
+      begin
+        Primitives.Add(E);
+      end;
+    end;
+  end;
+end;
 { TGdsInform }
 
 constructor TGdsInform.Create;
@@ -289,19 +367,21 @@ begin
   FElement := nil;
 end;
 
+
 destructor TGdsInform.Destroy;
 begin
   WriteLn('TGdsInform.Destroy');
   inherited;
 end;
 
+
 procedure TGdsInform.Execute;
 var
-  recSize: Integer;
-  bytesSize: Integer;
+  recSize: integer;
+  bytesSize: integer;
   buff: TBytes;
-  numRead: Integer;
-  recCount: Longint;
+  numRead: integer;
+  recCount: longint;
 begin
   if not FileExists(FileName) then
   begin
@@ -355,15 +435,17 @@ begin
   end;
 end;
 
+
 procedure TGdsInform.HandleRecord(const ABytes: TBytes);
 var
   int2array: TInt16s;
   doubleArray: TDoubles;
 
+
   procedure SetDateTimeItems(var ADateTime: TDateTimeItems; AInts: TInt16s;
-    AOffset: Integer);
+    AOffset: integer);
   var
-    i: Integer;
+    i: integer;
   begin
     for i := 0 to 5 do
       ADateTime.items[i] := AInts[i + AOffset];
@@ -397,14 +479,13 @@ begin
       FStructure.FName := ExtractAscii(ABytes);
     htENDSTR:
     begin
-      FLibrary.FStructures.Add(FStructure);
-      FStructure.FParent := FLibrary;
+      FLibrary.Add(FStructure);
       FStructure := nil;
     end;
     htBOUNDARY, htPATH, htSREF, htAREF, htTEXT, htNODE, htBOX:
     begin
       FElement := TGdsElement.CreateFromHeaderByte(ABytes[0]);
-      DebugLn('NewElement: ', String(FElement.ClassName).Remove(0, 4).ToUpper);
+      DebugLn('NewElement: ', string(FElement.ClassName).Remove(0, 4).ToUpper);
     end;
     htSNAME:
       (FElement as TGdsSref).FRefName := ExtractAScii(ABytes);
@@ -425,29 +506,31 @@ begin
   end;
 end;
 
+
 function TGdsInform.ExtractInt2(const ABytes: TBytes): TInt16s;
 var
-  i: Integer;
-  bodySize: Integer;
-  numItems: Integer;
+  i: integer;
+  bodySize: integer;
+  numItems: integer;
 begin
   Result := [];
   bodySize := Length(Abytes) - 2;
-  numItems := bodySize div sizeof(Int16);
+  numItems := bodySize div sizeof(int16);
   SetLength(Result, numItems);
   for i := 0 to numItems - 1 do
     Result[i] := GDSreadInt2(@ABytes[i * 2 + 2]);
 end;
 
+
 function TGdsInform.ExtractInt4(const ABytes: TBytes): TInt32s;
 var
-  i: Integer;
-  bodySize: Integer;
-  numItems: Integer;
+  i: integer;
+  bodySize: integer;
+  numItems: integer;
 begin
   Result := [];
   bodySize := Length(Abytes) - 2;
-  numItems := bodySize div sizeof(Int32);
+  numItems := bodySize div sizeof(int32);
   SetLength(Result, numItems);
   for i := 0 to numItems - 1 do
     Result[i] := GDSreadInt4(@ABytes[i * 4 + 2]);
@@ -456,22 +539,22 @@ end;
 
 function TGdsInform.ExtractReal8(const ABytes: TBytes): TDoubles;
 var
-  i: Integer;
-  bodySize: Integer;
-  numItems: Integer;
+  i: integer;
+  bodySize: integer;
+  numItems: integer;
 begin
   Result := [];
   bodySize := Length(Abytes) - 2;
-  numItems := bodySize div sizeof(Double);
+  numItems := bodySize div sizeof(double);
   SetLength(Result, numItems);
   for i := 0 to numItems - 1 do
     Result[i] := GDSreadReal8(@ABytes[i * 8 + 2]);
 end;
 
 
-function TGdsInform.ExtractAscii(const ABytes: TBytes): String;
+function TGdsInform.ExtractAscii(const ABytes: TBytes): string;
 var
-  buff: array [0 .. 511] of Byte;
+  buff: array [0 .. 511] of byte;
 begin
   Result := '';
   if ABytes[1] <> dtASCII then
@@ -482,9 +565,10 @@ begin
   Result := Format('%s', [PChar(@buff[0])]);
 end;
 
-function FileSizeEx(const AFileName: String): Longint;
+
+function FileSizeEx(const AFileName: string): longint;
 var
-  F: file of Byte;
+  F: file of byte;
 begin
   Result := -1;
   if not FileExists(AFileName) then
@@ -500,17 +584,19 @@ end;
 
 { TGdsObject }
 
-function TGdsObject.ShortClassName: String;
+function TGdsObject.ShortClassName: string;
 begin
   Result := ClassName;
   if Result.StartsWith('TGds') then
     Result := Result.Remove(0, 4);
 end;
 
-function TGdsObject.ToString: String;
+
+function TGdsObject.ToString: string;
 begin
   Result := 'a ' + ShortClassName;
 end;
+
 
 function TGdsObject.GetRoot: TGdsObject;
 var
@@ -539,17 +625,19 @@ begin
 end;
 
 
-function TGdsElement.ToString: String;
+function TGdsElement.ToString: string;
 begin
   Result := ShortClassName.ToUpper;
 end;
+
 
 function TGdsElement.LookupCoords: TCoords;
 var
   lib: TGdsLibrary;
   AXY: TXY;
-  i: Integer;
+  i: integer;
 begin
+  Result := [];
   lib := GetRoot as TGdsLibrary;
   SetLength(Result, Length(FXY) div 2);
   for i := 0 to High(Result) do
@@ -558,6 +646,23 @@ begin
     AXY[1] := FXY[i * 2 + 1] * lib.FUserUnit;
     Result[i] := AXY;
   end;
+end;
+
+
+function TGdsElement.LookupExtentBounds: TRectangleF;
+begin
+  Result := CalcBounds(FCoords);
+end;
+
+
+function TGdsElement.GetExtentBounds: TRectangleF;
+begin
+  if FExtentBoundsPtr = nil then
+  begin
+    FExtentBounds := LookupExtentBounds;
+    FExtentBoundsPtr := @FExtentBounds;
+  end;
+  Result := FExtentBounds;
 end;
 
 
@@ -571,7 +676,13 @@ begin
 end;
 
 
-class function TGdsElement.CreateFromHeaderByte(AByte: Byte): TGdsElement;
+function TGdsElement.IsReference: boolean;
+begin
+  Result := False;
+end;
+
+
+class function TGdsElement.CreateFromHeaderByte(AByte: byte): TGdsElement;
 var
   clazz: TGdsElementClass;
 begin
@@ -592,18 +703,31 @@ begin
 end;
 
 { TGdsText }
-
-function TGdsText.ToString: String;
+function TGdsText.ToString: string;
 begin
   Result := inherited + '(' + Contents + ')';
 end;
 
 { TGdsSref }
-
-function TGdsSref.ToString: String;
+function TGdsSref.ToString: string;
 begin
   Result := inherited + '(' + RefName + ')';
 end;
 
+
+function TGdsSref.IsReference: boolean;
+begin
+  Result := True;
+end;
+
+
+function TGdsSref.GetRefStructure: TGdsStructure;
+begin
+  if FRefStructure = nil then
+  begin
+    FRefStructure := (Parent as TGdsLibrary).StructureNamed(RefName);
+  end;
+  Result := FRefStructure;
+end;
 
 end.
