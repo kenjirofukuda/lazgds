@@ -38,6 +38,8 @@ function RectangleF(X1, Y1, X2, Y2: single): TRectangleF;
 function RectangleF(P1, P2: TPointF): TRectangleF;
 function EmptyRectangleF: TRectangleF;
 function CalcExtent(Points: TXYPointList): TRectangleF;
+function StringFromPointF(PointF: TPointF): string;
+function StringFromRectangleF(RectangleF: TRectangleF): string;
 
 
 implementation
@@ -137,16 +139,30 @@ end;
 
 
 function CalcExtent(Points: TXYPointList): TRectangleF;
-var P: TPointF;
+var
+  P: TPointF;
 begin
-   Result := EmptyRectangleF;
-   for P in Points do
-   begin
-     Result.Origin.x := Min(P.x, Result.Origin.x);
-     Result.Origin.y := Min(P.y, Result.Origin.y);
-     Result.Corner.x := Max(P.x, Result.Corner.x);
-     Result.Corner.y := Max(P.x, Result.Corner.y);
-   end;
+  Result := EmptyRectangleF;
+  for P in Points do
+  begin
+    Result.Origin.x := Min(P.x, Result.Origin.x);
+    Result.Origin.y := Min(P.y, Result.Origin.y);
+    Result.Corner.x := Max(P.x, Result.Corner.x);
+    Result.Corner.y := Max(P.x, Result.Corner.y);
+  end;
+end;
+
+
+function StringFromPointF(PointF: TPointF): string;
+begin
+  Result := Format('(%6.4f, %6.4f)', [PointF.x, PointF.y]);
+end;
+
+
+function StringFromRectangleF(RectangleF: TRectangleF): string;
+begin
+  Result := Format('%s - %s', [StringFromPointF(RectangleF.Origin),
+    StringFromPointF(RectangleF.Corner)]);
 end;
 
 end.

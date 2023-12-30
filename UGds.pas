@@ -60,7 +60,6 @@ type
   end;
 
 
-
   TGdsElement = class(TGdsObject)
   private
     FXY: TInt32s;
@@ -69,6 +68,7 @@ type
     FExtentBoundsPtr: ^TRectangleF;
   public
     class function CreateFromHeaderByte(AByte: byte): TGdsElement;
+    constructor Create;
     destructor Destroy; override;
     function ToString: string; override;
     function GetCoords: TCoords;
@@ -129,13 +129,18 @@ type
     FCreated: TDateTimeItems;
     FLastModified: TDateTimeItems;
     FElements: TGdsElements;
+    FExtentBounds: TRectangleF;
+    FExtentBoundsPtr: ^TRectangleF;
   public
     constructor Create;
     destructor Destroy; override;
+    function GetExtentBounds: TRectangleF;
     property Name: string read FName;
     property Elements: TGdsElements read FElements;
   public
     procedure SplitElements(Primitives: TGdsElements; Others: TGdsElements);
+  private
+    function LookupExtentBounds: TRectangleF; virtual;
   end;
 
   TGdsStructures = specialize TFPGObjectList<TGdsStructure>;
@@ -260,16 +265,18 @@ function CalcBounds(Coords: TCoords): TRectangleF;
 var
   P: TPointF;
   i: integer;
+  R: TRectangleF;
 begin
-  Result := EmptyRectangleF;
+  R := EmptyRectangleF;
   for i := 0 to High(Coords) do
   begin
     P := PointF(single(Coords[i][0]), single(Coords[i][1]));
-    Result.Origin.x := Min(P.x, Result.Origin.x);
-    Result.Origin.y := Min(P.y, Result.Origin.y);
-    Result.Corner.x := Max(P.x, Result.Corner.x);
-    Result.Corner.y := Max(P.x, Result.Corner.y);
+    R.Origin.x := Min(P.x, R.Origin.x);
+    R.Origin.y := Min(P.y, R.Origin.y);
+    R.Corner.x := Max(P.x, R.Corner.x);
+    R.Corner.y := Max(P.y, R.Corner.y);
   end;
+  Result := R;
 end;
 { TGdsLibrary }
 
@@ -277,12 +284,13 @@ constructor TGdsLibrary.Create;
 begin
   inherited;
   FStructures := TGdsStructures.Create;
-  FStructureMap := TGdsStructureMap.Create;
+  FStructureMap := TGdsStructureMap.Create(False);
 end;
 
 
 destructor TGdsLibrary.Destroy;
 begin
+  DebugLn('TGdsLibrary.Destroy');
   FreeAndNil(FStructureMap);
   FreeAndNil(FStructures);
   inherited;
@@ -322,14 +330,42 @@ end;
 constructor TGdsStructure.Create;
 begin
   inherited;
+  FExtentBoundsPtr := nil;
   FElements := TGdsElements.Create;
+  FElements.FreeObjects := True;
 end;
 
 
 destructor TGdsStructure.Destroy;
 begin
+  DebugLn('TGdsStructure.Destroy');
   FreeAndNil(FElements);
   inherited;
+end;
+
+
+function TGdsStructure.LookupExtentBounds: TRectangleF;
+var
+  E: TGdsElement;
+  B: TRectangleF;
+begin
+  B := EmptyRectangleF;
+  for E in FElements do
+  begin
+    B := B.Merge(E.GetExtentBounds);
+  end;
+  Result := B;
+end;
+
+
+function TGdsStructure.GetExtentBounds: TRectangleF;
+begin
+  if FExtentBoundsPtr = nil then
+  begin
+    FExtentBounds := LookupExtentBounds;
+    FExtentBoundsPtr := @FExtentBounds;
+  end;
+  Result := FExtentBounds;
 end;
 
 
@@ -617,10 +653,17 @@ end;
 
 { TGdsElement }
 
+constructor TGdsElement.Create;
+begin
+  inherited;
+  FExtentBoundsPtr := nil;
+end;
+
 destructor TGdsElement.Destroy;
 begin
-  FreeAndNil(FXY);
-  FreeAndNil(FCoords);
+  DebugLn('TGdsElement.Destroy');
+  FXY := nil;
+  FCoords := nil;
   inherited;
 end;
 
@@ -651,7 +694,7 @@ end;
 
 function TGdsElement.LookupExtentBounds: TRectangleF;
 begin
-  Result := CalcBounds(FCoords);
+  Result := CalcBounds(GetCoords);
 end;
 
 
