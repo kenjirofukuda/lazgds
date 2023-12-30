@@ -17,14 +17,17 @@ type
     ElementListBox: TListBox;
     MainMenu: TMainMenu;
     FileMenu: TMenuItem;
-    ChooseGdsMenuItem: TMenuItem;
     GdsFileNameLabel: TLabel;
     OpenGdsDialog: TOpenDialog;
+    StatusBar: TStatusBar;
     StructureListBox: TListBox;
     XYListView: TListView;
+    { Menu Items }
+    ChooseGdsMenuItem: TMenuItem;
+    Separator1: TMenuItem;
+    QuitMenuItem: TMenuItem;
 
-    procedure BrowserPanelClick(Sender: TObject);
-    procedure GdsFileNameLabelClick(Sender: TObject);
+    procedure QuitMenuItemClick(Sender: TObject);
     procedure OpenGdsFile(Sender: TObject);
 
     procedure FormCreate(Sender: TObject);
@@ -56,37 +59,34 @@ uses
 
 procedure TGdsBrowserForm.OpenGdsFile(Sender: TObject);
 var
-  S: TGdsStructure;
+  structure: TGdsStructure;
 begin
   if OpenGdsDialog.Execute then
     GdsFileNameLabel.Caption := OpenGdsDialog.FileName
   else
     Exit;
-  if not FileExists(GdsFileNameLabel.Caption) then
+  if not FileExists(OpenGdsDialog.FileName) then
     Exit;
-  FGdsInform.FileName := GdsFileNameLabel.Caption;
+  FGdsInform.FileName := OpenGdsDialog.FileName;
   FGdsInform.Execute;
   StructureListBox.Clear;
   ElementListBox.Clear;
   XYListView.Clear;
   if FGdsInform.GdsLibrary = nil then
     Exit;
-  for S in FGdsInform.GdsLibrary.Structures do
+  for structure in FGdsInform.GdsLibrary.Structures do
   begin
-    StructureListBox.AddItem(S.Name, S);
+    StructureListBox.AddItem(structure.Name, structure);
   end;
   Caption := FGdsInform.GdsLibrary.Name;
 end;
 
-procedure TGdsBrowserForm.GdsFileNameLabelClick(Sender: TObject);
-begin
 
+procedure TGdsBrowserForm.QuitMenuItemClick(Sender: TObject);
+begin
+  GdsBrowserForm.Close;
 end;
 
-procedure TGdsBrowserForm.BrowserPanelClick(Sender: TObject);
-begin
-
-end;
 
 procedure TGdsBrowserForm.FormCreate(Sender: TObject);
 begin
@@ -94,10 +94,12 @@ begin
   FGdsInform.OnBytes := @HandleBytes;
 end;
 
+
 procedure TGdsBrowserForm.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FGdsInform);
 end;
+
 
 procedure TGdsBrowserForm.HandleBytes(const ABytes: TBytes; Sender: TGdsInform);
 begin
@@ -105,6 +107,7 @@ begin
     Exit;
   DebugLn(Sender.ExtractAscii(ABytes));
 end;
+
 
 procedure TGdsBrowserForm.StructureListBoxSelectionChange(Sender: TObject;
   User: Boolean);
@@ -125,6 +128,7 @@ begin
   end;
 end;
 
+
 procedure TGdsBrowserForm.ElementListBoxSelectionChange(Sender: TObject; User: Boolean);
 var
   i: Integer;
@@ -136,7 +140,7 @@ begin
     Exit;
   E := ElementListBox.Items.Objects[i] as TGdsElement;
   XYListView.Clear;
-  for AXY in E.GetCoords do
+  for AXY in E.Coords do
   begin
     with XYListView.Items.Add do
     begin
@@ -144,14 +148,6 @@ begin
       SubItems.Add(AXY[1].ToString);
     end;
   end;
-  //for i := 0 to Length(E.XY) div 2 - 1 do
-  //begin
-  //  with XYListView.Items.Add do
-  //  begin
-  //    SubItems.Add(E.XY[i * 2 + 0].ToString);
-  //    SubItems.Add(E.XY[i * 2 + 1].ToString);
-  //  end;
-  //end;
-end;
+ end;
 
 end.

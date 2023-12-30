@@ -64,11 +64,16 @@ type
   TGdsElement = class(TGdsObject)
   private
     FXY: TInt32s;
+    FCoords: TCoords;
   public
     class function CreateFromHeaderByte(AByte: Byte): TGdsElement;
+    destructor Destroy; override;
     function ToString: String; override;
-    property XY: TInt32s read FXY;
     function GetCoords: TCoords;
+    //property XY: TInt32s read FXY;
+    property Coords: TCoords read GetCoords;
+  private
+    function LookupCoords: TCoords;
   end;
 
   TGdsElementClass = class of TGdsElement;
@@ -526,12 +531,20 @@ end;
 
 { TGdsElement }
 
+destructor TGdsElement.Destroy;
+begin
+  FreeAndNil(FXY);
+  FreeAndNil(FCoords);
+  inherited;
+end;
+
+
 function TGdsElement.ToString: String;
 begin
   Result := ShortClassName.ToUpper;
 end;
 
-function TGdsElement.GetCoords: TCoords;
+function TGdsElement.LookupCoords: TCoords;
 var
   lib: TGdsLibrary;
   AXY: TXY;
@@ -545,6 +558,16 @@ begin
     AXY[1] := FXY[i * 2 + 1] * lib.FUserUnit;
     Result[i] := AXY;
   end;
+end;
+
+
+function TGdsElement.GetCoords: TCoords;
+begin
+  if FCoords = nil then
+  begin
+    FCoords := LookupCoords;
+  end;
+  Result := FCoords;
 end;
 
 
