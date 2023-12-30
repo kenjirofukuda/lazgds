@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  Menus, ExtCtrls, UGds;
+  Menus, ExtCtrls, UGds, UGdsView, UGdsStation;
 
 type
 
@@ -27,6 +27,7 @@ type
     Separator1: TMenuItem;
     QuitMenuItem: TMenuItem;
 
+    procedure BrowserPanelClick(Sender: TObject);
     procedure QuitMenuItemClick(Sender: TObject);
     procedure OpenGdsFile(Sender: TObject);
 
@@ -39,6 +40,7 @@ type
 
   private
     FGdsInform: TGdsInform;
+    FGdsView: TGdsView;
 
   public
 
@@ -74,6 +76,7 @@ begin
   XYListView.Clear;
   if FGdsInform.GdsLibrary = nil then
     Exit;
+  GdsStation.GdsLibrary := FGdsInform.GdsLibrary;
   for structure in FGdsInform.GdsLibrary.Structures do
   begin
     StructureListBox.AddItem(structure.Name, structure);
@@ -87,11 +90,34 @@ begin
   GdsBrowserForm.Close;
 end;
 
+procedure TGdsBrowserForm.BrowserPanelClick(Sender: TObject);
+begin
+
+end;
+
 
 procedure TGdsBrowserForm.FormCreate(Sender: TObject);
 begin
   FGdsInform := TGdsInform.Create;
   FGdsInform.OnBytes := @HandleBytes;
+  FGdsView := TGdsView.Create(BrowserPanel);
+  with FGdsView do
+  begin
+    AnchorSideLeft.Control := XYListView;
+    AnchorSideLeft.Side := asrBottom;
+    AnchorSideTop.Control := BrowserPanel;
+    AnchorSideRight.Control := BrowserPanel;
+    AnchorSideRight.Side := asrBottom;
+    AnchorSideBottom.Control := BrowserPanel;
+    AnchorSideBottom.Side := asrBottom;
+    Anchors := [akTop, akLeft, akRight, akBottom];
+    Caption := 'GdsView';
+    ParentBackground := False;
+    ParentColor := False;
+    Color := clYellow;
+    Visible := True;
+    Parent := BrowserPanel;
+  end;
 end;
 
 
@@ -120,6 +146,7 @@ begin
   if i < 0 then
     Exit;
   S := StructureListBox.Items.Objects[i] as TGdsStructure;
+  GdsStation.GdsStructure := S;
   ElementListBox.Clear;
   XYListView.Clear;
   for E in S.Elements do
@@ -139,6 +166,7 @@ begin
   if i < 0 then
     Exit;
   E := ElementListBox.Items.Objects[i] as TGdsElement;
+  GdsStation.GdsElement := E;
   XYListView.Clear;
   for AXY in E.Coords do
   begin

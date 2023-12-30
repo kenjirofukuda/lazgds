@@ -5,9 +5,9 @@ unit UWorldView;
 interface
 
 uses
-  Classes, SysUtils, Types, Graphics, fgl, UGeometryUtils,
-  Controls, Menus, ExtCtrls,
-  Dialogs, LCLIntf, UViewport;
+  Classes, SysUtils, Types, Graphics, fgl,
+  Controls, Menus, ExtCtrls, Dialogs, LCLIntf,
+  UGeometryUtils, UViewport;
 
 type
   TViewTracking = class;
@@ -120,6 +120,7 @@ begin
   FreeAndNil(FViewport);
   inherited;
 end;
+
 
 procedure TWorldDrawer.VLine(Canvas: TCanvas; AXValue: single);
 var
