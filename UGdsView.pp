@@ -59,7 +59,7 @@ type
 implementation
 
 uses
-  Types, UGdsStation, UGeometryUtils, LazLogger;
+  Types, UGdsStation, UGeometryUtils, UColorUtils, LazLogger;
 
 
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
@@ -136,12 +136,43 @@ var
   DP: TPointF;
   i: integer;
   GD: TElementDrawer;
+
+  procedure DrawColors;
+  var
+    ThisMany :integer ;
+    colors: TColors;
+    i: integer;
+    step: integer;
+    x1, x2, y1, y2: integer;
+    savedColor: TColor;
+  begin
+    ThisMany := 100;
+    colors := ColorWheel(ThisMany, 0.7, 1.0, 0.0);
+    step := Round(Double(ClientWidth) / ThisMany);
+    savedColor := Canvas.Brush.Color;
+    y1 := ClientHeight - 50;
+    y2 := ClientHeight;
+    for i := 0 to ThisMany - 1 do
+    begin
+      Canvas.Brush.Color := colors[i];
+      x1 := i * step;
+      x2 := i * step + step;
+      Canvas.FillRect(x1, y1, x2, y2);
+    end;
+    Canvas.Brush.Color := savedColor;
+    colors := nil;
+  end;
+
 begin
+
   Canvas.Brush.Color := clNavy;
   Canvas.Clear;
 
   if GdsStation.GdsStructure = nil then
-    Exit;
+    begin
+      DrawColors;
+      Exit;
+    end;
 
   Canvas.Font.Color := clYellow;
   Canvas.TextOut(10, 10, GdsStation.GdsStructure.Name);

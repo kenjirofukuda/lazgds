@@ -35,6 +35,7 @@ const
   htSTRING = $19;
   htENDEL = $11;
   htPATHTYPE = $21;
+  htLAYER = $0D;
   htWIDTH = $0F;
 
 const
@@ -74,6 +75,7 @@ type
   private
     FXY: TInt32s;
     FCoords: TCoords;
+    FLayer: integer;
     FExtentBounds: TRectangleF;
     FExtentBoundsPtr: ^TRectangleF;
   public
@@ -550,6 +552,8 @@ begin
       FElement.FXY := ExtractInt4(ABytes);
     htPATHTYPE:
       (FElement as TGdsPath).PathType := ExtractInt2(ABytes)[0];
+    htLAYER:
+      FElement.FLayer := ExtractInt2(ABytes)[0];
     htWIDTH:
     begin
       (FElement as TGdsPath).Width := ExtractInt4(ABytes)[0] * FLibrary.FUserUnit;
