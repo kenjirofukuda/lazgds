@@ -10,7 +10,7 @@ uses
 type
   TGdsDrawer = class;
   TElementDrawer = class;
-  TDrawerMap =  specialize TFPGMapObject<string, TElementDrawer>;
+  TDrawerMap = specialize TFPGMapObject<string, TElementDrawer>;
 
   TGdsView = class(TWorldView)
     constructor Create(AOwner: TComponent); override;
@@ -61,7 +61,6 @@ implementation
 uses
   Types, UGdsStation, UGeometryUtils, UColorUtils, LazLogger;
 
-
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
 begin
   DebugLn('TElementDrawer.DrawOn');
@@ -82,9 +81,9 @@ var
 begin
   DebugLn('TPathDrawer.DrawOn');
   savedColor := ACanvas.Pen.Color;
-  ACanvas.Pen.Color :=  clGreen;
+  ACanvas.Pen.Color := clGreen;
   StrokeCoords(ACanvas, (Element as TGdsPath).OutlineCoords);
-  ACanvas.Pen.Color :=  savedColor;
+  ACanvas.Pen.Color := savedColor;
 end;
 
 
@@ -139,7 +138,7 @@ var
 
   procedure DrawColors;
   var
-    ThisMany :integer ;
+    ThisMany: integer;
     colors: TColors;
     i: integer;
     step: integer;
@@ -169,23 +168,21 @@ begin
   Canvas.Clear;
 
   if GdsStation.GdsStructure = nil then
-    begin
-      DrawColors;
-      Exit;
-    end;
+  begin
+    DrawColors;
+    Exit;
+  end;
 
   Canvas.Font.Color := clYellow;
   Canvas.TextOut(10, 10, GdsStation.GdsStructure.Name);
   Canvas.TextOut(10, 30, StringFromRectangleF(
     GdsStation.GdsStructure.GetExtentBounds));
-//  GdsDrawer.Viewport.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
   Canvas.Pen.Color := clWhite;
   for E in GdsStation.GdsStructure.Elements do
   begin
     GD := FDrawerMap[E.ClassName];
     GD.Element := E;
     GD.DrawOn(Canvas);
-//    GdsDrawer.StrokeCoords(Canvas, E.Coords);
   end;
 end;
 
