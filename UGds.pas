@@ -99,9 +99,9 @@ type
 
   TGdsPath = class(TGdsElement)
     FOutlineCoords: TCoords;
-    FPathType: Integer;
+    FPathType: integer;
     FWidth: double;
-    property PathType: Integer read FPathType write FPathType;
+    property PathType: integer read FPathType write FPathType;
     property Width: double read FWidth write FWidth;
     function OutlineCoords: TCoords;
   end;
@@ -211,7 +211,8 @@ type
 
 function FileSizeEx(const AFileName: string): longint;
 function CalcBounds(Coords: TCoords): TRectangleF;
-function pathOutlineCoords(ACoords: TCoords; APathType: integer; AWidth: double): TCoords;
+function pathOutlineCoords(ACoords: TCoords; APathType: integer;
+  AWidth: double): TCoords;
 
 
 implementation
@@ -551,7 +552,7 @@ begin
       (FElement as TGdsPath).PathType := ExtractInt2(ABytes)[0];
     htWIDTH:
     begin
-      (FElement as TGdsPath).Width := ExtractInt2(ABytes)[0] * FLibrary.FUserUnit;
+      (FElement as TGdsPath).Width := ExtractInt4(ABytes)[0] * FLibrary.FUserUnit;
     end;
     htENDEL:
     begin
@@ -774,7 +775,7 @@ end;
 function TGdsPath.OutlineCoords: TCoords;
 begin
   if FOutlineCoords = nil then
-     FOutlineCoords := pathOutlineCoords(Coords, PathType, Width);
+    FOutlineCoords := pathOutlineCoords(Coords, PathType, Width);
   Result := FOutlineCoords;
 end;
 
@@ -906,7 +907,7 @@ begin
     points[2 * numPoints - 1][1] := ACoords[0][1] - deltaxy[1] - deltaxy[0];
   end;
 
-  for i := 1 to numPoints - 1 do
+  for i := 1 to numPoints do
   begin
     deltaxy := getDeltaXY(hw, ACoords[i - 1], ACoords[i], ACoords[i + 1]);
     points[i][0] := ACoords[i][0] + deltaxy[0];
@@ -915,7 +916,7 @@ begin
     points[2 * numPoints - i - 1][1] := ACoords[i][1] - deltaxy[1];
   end;
 
-  deltaxy := getEndDeltaXY(hw, ACoords[numPoints - 1], ACoords[numPoints - 2]);
+  deltaxy := getEndDeltaXY(hw, ACoords[numPoints - 2], ACoords[numPoints - 1]);
   if APathType = BUTT_END then
   begin
     points[numPoints - 1][0] := ACoords[numPoints - 1][0] + deltaxy[0];
