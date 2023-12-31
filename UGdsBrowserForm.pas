@@ -141,6 +141,7 @@ begin
     Exit;
   S := StructureListBox.Items.Objects[i] as TGdsStructure;
   GdsStation.GdsStructure := S;
+  FGdsView.Viewport.SetWorldBounds(S.GetExtentBounds);
   FGdsView.Invalidate;
   ElementListBox.Clear;
   XYListView.Clear;

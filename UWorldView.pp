@@ -72,6 +72,7 @@ type
 
     procedure ChooseTool(toolName: string);
 
+    property Viewport: TViewport read FViewport;
     property WorldDrawer: TWorldDrawer read FWorldDrawer write SetWorldDrawer;
     property ShowExtentBounds: boolean read FShowExtentBounds write FShowExtentBounds;
     property ShowAxisLine: boolean read FShowAxisLine write FShowAxisLine;
@@ -162,11 +163,15 @@ procedure TWorldDrawer.FillPointOn(Canvas: TCanvas; AWorldPoint: TPointF;
   AUnitSize: integer);
 var
   hvPoint: TPointF;
+  savedColor: TColor;
 begin
   // TODO: FIXME
+  savedColor := Canvas.Brush.Color;
+  Canvas.Brush.Color := Canvas.Pen.Color;
   hvPoint := Viewport.WorldToDevice(AWorldPoint.x, AWorldPoint.y);
   Canvas.Ellipse(round(hvPoint.x - AUnitSize), round(hvPoint.y - AUnitSize),
     round(hvPoint.x + AUnitSize), round(hvPoint.y + AUnitSize));
+  Canvas.Brush.Color := savedColor;
 end;
 
 procedure TWorldDrawer.FrameBoundsOn(Canvas: TCanvas; AWorldBounds: TRectangleF);
@@ -281,12 +286,10 @@ end;
 
 procedure TWorldView.HandleResize(Sender: TObject);
 begin
-  if not Assigned(FWorldDrawer) then
-    exit;
-  FWorldDrawer.Viewport.SetPortSize(ClientWidth, ClientHeight);
+  Viewport.SetPortSize(ClientWidth, ClientHeight);
   if not FFirstResizeHandled then
   begin
-    FWorldDrawer.Viewport.ResetPortCenter;
+    Viewport.ResetPortCenter;
     FFirstResizeHandled := True;
   end;
 end;
@@ -384,7 +387,7 @@ begin
     direction := -1.0
   else
     direction := 1.0;
-  FWorldView.WorldDrawer.Viewport.WheelZoom(MousePos.x, MousePos.y, direction);
+  FWorldView.Viewport.WheelZoom(MousePos.x, MousePos.y, direction);
   FWorldView.Invalidate;
 end;
 

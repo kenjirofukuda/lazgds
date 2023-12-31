@@ -65,18 +65,21 @@ uses
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
 begin
   DebugLn('TElementDrawer.DrawOn');
+  StrokeCoords(ACanvas, Element.Coords);
 end;
 
 
 procedure TBoundaryDrawer.DrawOn(ACanvas: TCanvas);
 begin
   DebugLn('TBoundaryDrawer.DrawOn');
+  inherited;
 end;
 
 
 procedure TPathDrawer.DrawOn(ACanvas: TCanvas);
 begin
   DebugLn('TPathDrawer.DrawOn');
+  inherited;
 end;
 
 
@@ -139,16 +142,14 @@ begin
   Canvas.TextOut(10, 10, GdsStation.GdsStructure.Name);
   Canvas.TextOut(10, 30, StringFromRectangleF(
     GdsStation.GdsStructure.GetExtentBounds));
-  GdsDrawer.Viewport.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
+//  GdsDrawer.Viewport.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
   Canvas.Pen.Color := clWhite;
   for E in GdsStation.GdsStructure.Elements do
   begin
     GD := FDrawerMap[E.ClassName];
     GD.Element := E;
     GD.DrawOn(Canvas);
-    if E.ClassType = TGdsElement then
-      DebugLn('ClassType');
-    GdsDrawer.StrokeCoords(Canvas, E.Coords);
+//    GdsDrawer.StrokeCoords(Canvas, E.Coords);
   end;
 end;
 
