@@ -77,9 +77,14 @@ end;
 
 
 procedure TPathDrawer.DrawOn(ACanvas: TCanvas);
+var
+  savedColor: TColor;
 begin
   DebugLn('TPathDrawer.DrawOn');
-  inherited;
+  savedColor := ACanvas.Pen.Color;
+  ACanvas.Pen.Color :=  clGreen;
+  StrokeCoords(ACanvas, (Element as TGdsPath).OutlineCoords);
+  ACanvas.Pen.Color :=  savedColor;
 end;
 
 

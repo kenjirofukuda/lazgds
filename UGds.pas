@@ -34,6 +34,16 @@ const
   htSNAME = $12;
   htSTRING = $19;
   htENDEL = $11;
+  htPATHTYPE = $21;
+  htWIDTH = $0F;
+
+const
+  Pi_Half = 0.5 * Pi;
+  Pi_Double = 2.0 * Pi;
+  BUTT_END = 0;
+  ROUND_END = 1;
+  EXTENDED_END = 2;
+  CUSTOMPLUS_END = 4;
 
 type
   TInt16s = array of int16;
@@ -88,6 +98,12 @@ type
   end;
 
   TGdsPath = class(TGdsElement)
+    FOutlineCoords: TCoords;
+    FPathType: Integer;
+    FWidth: double;
+    property PathType: Integer read FPathType write FPathType;
+    property Width: double read FWidth write FWidth;
+    function OutlineCoords: TCoords;
   end;
 
   TGdsText = class(TGdsElement)
@@ -195,6 +211,8 @@ type
 
 function FileSizeEx(const AFileName: string): longint;
 function CalcBounds(Coords: TCoords): TRectangleF;
+function pathOutlineCoords(ACoords: TCoords; APathType: integer; AWidth: double): TCoords;
+
 
 implementation
 
@@ -529,6 +547,12 @@ begin
       (FElement as TGdsText).FContents := ExtractAScii(ABytes);
     htXY:
       FElement.FXY := ExtractInt4(ABytes);
+    htPATHTYPE:
+      (FElement as TGdsPath).PathType := ExtractInt2(ABytes)[0];
+    htWIDTH:
+    begin
+      (FElement as TGdsPath).Width := ExtractInt2(ABytes)[0] * FLibrary.FUserUnit;
+    end;
     htENDEL:
     begin
       if FElement <> nil then
@@ -659,6 +683,7 @@ begin
   FExtentBoundsPtr := nil;
 end;
 
+
 destructor TGdsElement.Destroy;
 begin
   DebugLn('TGdsElement.Destroy');
@@ -745,6 +770,14 @@ begin
   Result := clazz.Create;
 end;
 
+{ TGdsPath }
+function TGdsPath.OutlineCoords: TCoords;
+begin
+  if FOutlineCoords = nil then
+     FOutlineCoords := pathOutlineCoords(Coords, PathType, Width);
+  Result := FOutlineCoords;
+end;
+
 { TGdsText }
 function TGdsText.ToString: string;
 begin
@@ -772,5 +805,134 @@ begin
   end;
   Result := FRefStructure;
 end;
+
+
+function getAngle(x1: double; y1: double; x2: double; y2: double): double;
+var
+  angle: double;
+  direction: double;
+begin
+  if x1 = x2 then
+  begin
+    if y2 > y1 then direction := 1
+    else
+      direction := -1;
+    angle := Pi_Half * direction;
+  end
+  else
+  begin
+    angle := Math.ArcTan2(abs(y2 - y1), abs(x2 - x1));
+    if y2 >= y1 then
+      if x2 >= x1 then
+        angle := angle + 0.0
+      else
+        angle := Pi - angle
+    else
+    if x2 >= x1 then
+      angle := Pi_Double - angle
+    else
+      angle := angle + Pi;
+  end;
+  Result := angle;
+end;
+
+
+function getDeltaXY(hw: double; p1: TXY; p2: TXY; p3: TXY): TXY;
+const
+  eps = 1e-8;
+var
+  alpha, beta, theta, r: double;
+begin
+  alpha := getAngle(p1[0], p1[1], p2[0], p2[1]);
+  beta := getAngle(p2[0], p2[1], p3[0], p3[1]);
+  theta := (alpha + beta + Pi) / 2.0;
+  if Abs(Cos((alpha - beta) / 2.0)) < eps then
+  begin
+    DebugLn('Internal algorithm error: cos((alpha - beta)/2) = 0');
+    Halt(1);
+  end;
+  r := hw / Cos((alpha - beta) / 2.0);
+  Result[0] := r * Cos(theta);
+  Result[1] := r * Sin(theta);
+end;
+
+
+function getEndDeltaXY(hw: double; p1: TXY; p2: TXY): TXY;
+var
+  alpha, theta, r: double;
+begin
+  alpha := getAngle(p1[0], p1[1], p2[0], p2[1]);
+  theta := alpha;
+  r := hw;
+  Result[0] := -r * Sin(theta);
+  Result[1] := r * Cos(theta);
+end;
+
+
+function pathOutlineCoords(ACoords: TCoords; APathType: integer;
+  AWidth: double): TCoords;
+var
+  hw: double;
+  i, numPoints: integer;
+  points: TCoords;
+  deltaxy: TXY;
+begin
+  points := [];
+  hw := AWidth / 2.0;
+  numPoints := Length(ACoords);
+  if numPoints < 2 then
+  begin
+    DebugLn('pathOutlineCoords: don''t know to handle wires < 2 pts yet');
+    Exit(nil);
+  end;
+  SetLength(points, (2 * numPoints + 1));
+  deltaxy := getEndDeltaXY(hw, ACoords[0], ACoords[1]);
+  if APathType = BUTT_END then
+  begin
+    points[0][0] := ACoords[0][0] + deltaxy[0];
+    points[0][1] := ACoords[0][1] + deltaxy[1];
+    points[2 * numPoints][0] := ACoords[0][0] + deltaxy[0];
+    points[2 * numPoints][1] := ACoords[0][1] + deltaxy[1];
+    points[2 * numPoints - 1][0] := ACoords[0][0] - deltaxy[0];
+    points[2 * numPoints - 1][1] := ACoords[0][1] - deltaxy[1];
+  end
+  else
+  begin
+    points[0][0] := ACoords[0][0] + deltaxy[0] - deltaxy[1];
+    points[0][1] := ACoords[0][1] + deltaxy[1] - deltaxy[0];
+    points[2 * numPoints][0] := ACoords[0][0] + deltaxy[0] - deltaxy[1];
+    points[2 * numPoints][1] := ACoords[0][1] + deltaxy[1] - deltaxy[0];
+    points[2 * numPoints - 1][0] := ACoords[0][0] - deltaxy[0] - deltaxy[1];
+    points[2 * numPoints - 1][1] := ACoords[0][1] - deltaxy[1] - deltaxy[0];
+  end;
+
+  for i := 1 to numPoints - 1 do
+  begin
+    deltaxy := getDeltaXY(hw, ACoords[i - 1], ACoords[i], ACoords[i + 1]);
+    points[i][0] := ACoords[i][0] + deltaxy[0];
+    points[i][1] := ACoords[i][1] + deltaxy[1];
+    points[2 * numPoints - i - 1][0] := ACoords[i][0] - deltaxy[0];
+    points[2 * numPoints - i - 1][1] := ACoords[i][1] - deltaxy[1];
+  end;
+
+  deltaxy := getEndDeltaXY(hw, ACoords[numPoints - 1], ACoords[numPoints - 2]);
+  if APathType = BUTT_END then
+  begin
+    points[numPoints - 1][0] := ACoords[numPoints - 1][0] + deltaxy[0];
+    points[numPoints - 1][1] := ACoords[numPoints - 1][1] + deltaxy[1];
+    points[numPoints][0] := ACoords[numPoints - 1][0] - deltaxy[0];
+    points[numPoints][1] := ACoords[numPoints - 1][1] - deltaxy[1];
+  end
+  else
+  begin
+    points[numPoints - 1][0] := ACoords[numPoints - 1][0] + deltaxy[0] + deltaxy[1];
+    points[numPoints - 1][1] := ACoords[numPoints - 1][1] + deltaxy[1] + deltaxy[0];
+    points[numPoints][0] := ACoords[numPoints - 1][0] - deltaxy[0] + deltaxy[1];
+    points[numPoints][1] := ACoords[numPoints - 1][1] - deltaxy[1] + deltaxy[0];
+  end;
+
+  Result := points;
+end;
+
 
 end.
