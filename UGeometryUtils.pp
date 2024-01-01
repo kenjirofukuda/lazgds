@@ -148,7 +148,7 @@ begin
     Result.Origin.x := Min(P.x, Result.Origin.x);
     Result.Origin.y := Min(P.y, Result.Origin.y);
     Result.Corner.x := Max(P.x, Result.Corner.x);
-    Result.Corner.y := Max(P.x, Result.Corner.y);
+    Result.Corner.y := Max(P.y, Result.Corner.y);
   end;
 end;
 

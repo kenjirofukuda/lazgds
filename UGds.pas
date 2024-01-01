@@ -142,6 +142,7 @@ type
   public
     constructor Create; override;
     procedure DebugStringsOn(AStrings: TStringList); override;
+    function LookupExtentBounds: TRectangleF; override;
     function ToString: string; override;
     function IsReference: boolean; override;
     function GetRefStructure: TGdsStructure;
@@ -170,10 +171,13 @@ type
   end;
 
 
+  { TGdsText }
+
   TGdsText = class(TGdsSref)
   private
     FContents: string;
   public
+    function LookupExtentBounds: TRectangleF; override;
     function ToString: string; override;
     property Contents: string read FContents;
   end;
@@ -986,10 +990,17 @@ begin
   Result := FOutlineCoords;
 end;
 
+
+function TGdsText.LookupExtentBounds: TRectangleF;
+begin
+  Result := CalcBounds(Coords);
+end;
+
+
 { TGdsText }
 function TGdsText.ToString: string;
 begin
-  Result := inherited + '(' + Contents + ')';
+  Result := ShortClassName.ToUpper + '(' + Contents + ')';
 end;
 
 
@@ -1004,7 +1015,7 @@ end;
 
 function TGdsSref.ToString: string;
 begin
-  Result := inherited + '(' + RefName + ')';
+  Result := ShortClassName.ToUpper + '(' + RefName + ')';
 end;
 
 
@@ -1018,7 +1029,7 @@ function TGdsSref.GetRefStructure: TGdsStructure;
 begin
   if FRefStructure = nil then
   begin
-    FRefStructure := (Parent as TGdsLibrary).StructureNamed(RefName);
+    FRefStructure := (GetRoot as TGdsLibrary).StructureNamed(RefName);
   end;
   Result := FRefStructure;
 end;
@@ -1074,13 +1085,32 @@ begin
 end;
 
 
+function TGdsSref.LookupExtentBounds: TRectangleF;
+var
+  refBounds: TRectangleF;
+  tx: TAffineMatrix;
+  pt: TPointF;
+  pointList: TXYPointList;
+begin
+  refBounds := RefStructure.GetExtentBounds;
+  tx := GetTransform;
+  pointList := TXYPointList.Create;
+  for pt in refBounds.CornerPoints do
+  begin
+     pointList.Add(tx * pt);
+  end;
+  Result := CalcExtent(pointList);
+  pointList.Free;
+end;
+
+
 function TGdsSref.LookupTransform: TAffineMatrix;
 var
   tx: TAffineMatrix;
 begin
   tx := AffineMatrixTranslation(Coords[0][0], Coords[0][1]);
   tx *= AffineMatrixScale(FMag, FMag);
-  tx *= AffineMatrixRotationDeg(Math.RadToDeg(FAngleDeg));
+  tx *= AffineMatrixRotationRad(Math.DegToRad(FAngleDeg));
   if IsRefrected then
   begin
     tx[1, 2] := -tx[1, 2];

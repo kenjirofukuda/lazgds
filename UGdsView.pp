@@ -19,6 +19,8 @@ type
   public
     destructor Destroy; override;
     procedure HandlePaint(Sender: TObject); override;
+    procedure DrawElements(AElements: TGdsElements);
+    procedure DrawStructure(AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
   private
     FDrawerMap: TDrawerMap;
@@ -32,6 +34,7 @@ type
   { TElementDrawer }
 
   TElementDrawer = class(TGdsDrawer)
+    GdsView: TGdsView;
     Element: TGdsElement;
     procedure DrawOn(ACanvas: TCanvas); virtual;
 
@@ -81,15 +84,14 @@ begin
   DoStrokeOn(ACanvas);
 end;
 
+
 procedure TElementDrawer.DoStrokeOn(ACanvas: TCanvas);
 var
   savedColor: TColor;
 begin
   savedColor := ACanvas.Pen.Color;
   ACanvas.Pen.Color := GdsStation.LayerToColor(Element.Layer);
-//  SaveStrokeOn(ACanvas);
   StrokeOn(ACanvas);
-//  RestoreStrokeOn(ACanvas);
   ACanvas.Pen.Color := savedColor;
 end;
 
@@ -129,11 +131,16 @@ end;
 procedure TSrefDrawer.DrawOn(ACanvas: TCanvas);
 var
   Origin: TPointF;
+  eSref: TGdsSref;
 begin
   DebugLn('TSrefDrawer.DrawOn');
-  Origin := TPointF.Create(Element.Coords[0][0], Element.Coords[0][1]);
-  DebugLn(StringFromPointF(Origin));
-  FramePointOn(ACanvas, Origin, 4);
+  //Origin := TPointF.Create(Element.Coords[0][0], Element.Coords[0][1]);
+  //DebugLn(StringFromPointF(Origin));
+  //FramePointOn(ACanvas, Origin, 4);
+  eSref := (Element as TGdsSref);
+  Viewport.PushTransform(eSref.GetTransform);
+  GdsView.DrawStructure(eSref.RefStructure);
+  Viewport.PopTransform;
 end;
 
 
@@ -142,9 +149,9 @@ var
   Origin: TPointF;
 begin
   DebugLn('TArefDrawer.DrawOn');
-  Origin := TPointF.Create(Element.Coords[0][0], Element.Coords[0][1]);
-  DebugLn(StringFromPointF(Origin));
-  FillPointOn(ACanvas, Origin, 4);
+  //Origin := TPointF.Create(Element.Coords[0][0], Element.Coords[0][1]);
+  //DebugLn(StringFromPointF(Origin));
+  //FillPointOn(ACanvas, Origin, 4);
 end;
 
 
@@ -176,7 +183,6 @@ end;
 
 
 procedure TGdsView.HandlePaint(Sender: TObject);
-
 var
   E: TGdsElement;
   DP: TPointF;
@@ -184,6 +190,7 @@ var
   GD: TElementDrawer;
   textY: integer;
   textHeight: integer;
+
 
   procedure DrawColors;
   var
@@ -250,13 +257,7 @@ begin
     Exit;
   end;
 
-  Canvas.Pen.Color := clGray;
-  for E in GdsStation.GdsStructure.Elements do
-  begin
-    GD := FDrawerMap[E.ClassName];
-    GD.Element := E;
-    GD.DrawOn(Canvas);
-  end;
+  DrawStructure(GdsStation.GdsStructure);
   if Assigned(GdsStation.GdsElement) then
   begin
     E := GdsStation.GdsElement;
@@ -268,6 +269,27 @@ begin
     Canvas.Pen.Width := 1;
   end;
   DrawDebugInfo;
+end;
+
+
+procedure TGdsView.DrawElements(AElements: TGdsElements);
+var
+  GD: TElementDrawer;
+  E: TGdsElement;
+begin
+  for E in AElements do
+  begin
+    GD := FDrawerMap[E.ClassName];
+    GD.Element := E;
+    GD.GdsView := self;
+    GD.DrawOn(Canvas);
+  end;
+end;
+
+
+procedure TGdsView.DrawStructure(AStructure: TGdsStructure);
+begin
+  DrawElements(AStructure.Elements);
 end;
 
 
