@@ -34,14 +34,19 @@ type
   TElementDrawer = class(TGdsDrawer)
     Element: TGdsElement;
     procedure DrawOn(ACanvas: TCanvas); virtual;
+
+    procedure DoStrokeOn(ACanvas: TCanvas); virtual;
+    procedure StrokeOn(ACanvas: TCanvas); virtual;
+
+    procedure DoFillOn(ACanvas: TCanvas); virtual;
+    procedure FillOn(ACanvas: TCanvas); virtual;
   end;
 
   TBoundaryDrawer = class(TElementDrawer)
-    procedure DrawOn(ACanvas: TCanvas); override;
   end;
 
   TPathDrawer = class(TElementDrawer)
-    procedure DrawOn(ACanvas: TCanvas); override;
+    procedure StrokeOn(ACanvas: TCanvas); override;
   end;
 
   TTextDrawer = class(TElementDrawer)
@@ -72,22 +77,51 @@ uses
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
 begin
   DebugLn('TElementDrawer.DrawOn');
+  DoFillOn(ACanvas);
+  DoStrokeOn(ACanvas);
+end;
+
+procedure TElementDrawer.DoStrokeOn(ACanvas: TCanvas);
+var
+  savedColor: TColor;
+begin
+  savedColor := ACanvas.Pen.Color;
+  ACanvas.Pen.Color := GdsStation.LayerToColor(Element.Layer);
+//  SaveStrokeOn(ACanvas);
+  StrokeOn(ACanvas);
+//  RestoreStrokeOn(ACanvas);
+  ACanvas.Pen.Color := savedColor;
+end;
+
+
+procedure TElementDrawer.StrokeOn(ACanvas: TCanvas);
+begin
   StrokeCoords(ACanvas, Element.Coords);
 end;
 
 
-procedure TBoundaryDrawer.DrawOn(ACanvas: TCanvas);
-begin
-  DebugLn('TBoundaryDrawer.DrawOn');
-  inherited;
-end;
-
-
-procedure TPathDrawer.DrawOn(ACanvas: TCanvas);
+procedure TElementDrawer.DoFillOn(ACanvas: TCanvas);
 var
   savedColor: TColor;
 begin
-  DebugLn('TPathDrawer.DrawOn');
+  savedColor := ACanvas.Brush.Color;
+  StrokeOn(ACanvas);
+  ACanvas.Brush.Color := savedColor;
+end;
+
+
+procedure TElementDrawer.FillOn(ACanvas: TCanvas);
+begin
+
+end;
+
+
+procedure TPathDrawer.StrokeOn(ACanvas: TCanvas);
+begin
+  DebugLn('TPathDrawer.StrokeOn');
+  // Path Center
+  // inherited StrokeOn(ACanvas);
+  // Path OutLine
   StrokeCoords(ACanvas, (Element as TGdsPath).OutlineCoords);
 end;
 
@@ -207,7 +241,7 @@ var
 
 begin
 
-  Canvas.Brush.Color := clNavy;
+  Canvas.Brush.Color := clBlack;
   Canvas.Clear;
 
   if GdsStation.GdsStructure = nil then
@@ -229,7 +263,9 @@ begin
     GD := FDrawerMap[E.ClassName];
     GD.Element := E;
     Canvas.Pen.Color := clWhite;
-    GD.DrawOn(Canvas);
+    Canvas.Pen.Width := 2;
+    GD.StrokeOn(Canvas);
+    Canvas.Pen.Width := 1;
   end;
   DrawDebugInfo;
 end;

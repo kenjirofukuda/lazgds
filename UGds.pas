@@ -98,6 +98,7 @@ type
     procedure DebugStringsOn(AStrings: TStringList); virtual;
   public
     property Coords: TCoords read FCoords;
+    property Layer: integer read FLayer;
   protected
     function LookupExtentBounds: TRectangleF; virtual;
   end;
@@ -187,6 +188,9 @@ type
 
 
   TGdsElements = specialize TFPGObjectList<TGdsElement>;
+  TLayerElementsMap = specialize TFPGMapObject<integer, TGdsElements>;
+  TIntList = specialize TFPGList<integer>;
+  { TGdsStructure }
 
   TGdsStructure = class(TGdsObject)
   private
@@ -196,8 +200,9 @@ type
     FElements: TGdsElements;
     FExtentBounds: TRectangleF;
     FExtentBoundsPtr: ^TRectangleF;
+    FLayerElementsMap: TLayerElementsMap;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     function GetExtentBounds: TRectangleF;
     property Name: string read FName;
@@ -210,6 +215,8 @@ type
 
   TGdsStructures = specialize TFPGObjectList<TGdsStructure>;
   TGdsStructureMap = specialize TFPGMapObject<string, TGdsStructure>;
+
+  { TGdsLibrary }
 
   TGdsLibrary = class(TGdsObject)
   private
@@ -226,6 +233,7 @@ type
     procedure Add(Structure: TGdsStructure);
     function StructureNames: TStringArray;
     function StructureNamed(Name: string): TGdsStructure;
+    function UsedLayerNumbers: TInt32s;
     property Name: string read FName;
     property Structures: TGdsStructures read FStructures;
   end;
@@ -402,6 +410,62 @@ begin
   Result := FStructureMap.KeyData[Name];
 end;
 
+function compInteger(const Item1, Item2: Integer): Integer;
+begin
+  if Item1 > Item2 then
+     Result := 1
+  else if Item1 < Item2 then
+    Result := -1
+  else
+    Result := 0;
+end;
+
+
+function TGdsLibrary.UsedLayerNumbers: TInt32s;
+var
+  S: TGdsStructure;
+  E: TGdsElement;
+  layerElementsMap: TLayerElementsMap;
+  layer: integer;
+  i: integer;
+  layerList: TIntList;
+  layers : TInt32s;
+
+begin
+  layerList := TIntList.Create;
+  layerElementsMap := TLayerElementsMap.Create(False);
+  try
+    for S in Structures do
+    begin
+      for E in S.Elements do
+      begin
+        if E.Layer >= 0 then
+        begin
+          if layerElementsMap.IndexOf(E.Layer) < 0 then
+            layerElementsMap[E.Layer] := TGdsElements.Create(True);
+          layerElementsMap[E.Layer].Add(E);
+        end;
+      end;
+    end;
+    for i := 0 to layerElementsMap.Count - 1 do
+    begin
+      layer := layerElementsMap.Keys[i];
+      DebugLn('Layer = %d', [layer]);
+      layerList.Add(layer);
+    end;
+    layerList.Sort(@compInteger);
+    SetLength(layers, layerList.count);
+    for i := Low(layers) to High(layers) do
+    begin
+      layers[i] := layerList[i];
+    end;
+    Result := layers;
+  finally
+    layerElementsMap.Free;
+    layerList.Free;
+  end;
+end;
+
 { TGdsStructure }
 
 constructor TGdsStructure.Create;
@@ -410,12 +474,14 @@ begin
   FExtentBoundsPtr := nil;
   FElements := TGdsElements.Create;
   FElements.FreeObjects := True;
+  FLayerElementsMap := TLayerElementsMap.Create(False);
 end;
 
 
 destructor TGdsStructure.Destroy;
 begin
   DebugLn('TGdsStructure.Destroy');
+  FreeAndNil(FLayerElementsMap);
   FreeAndNil(FElements);
   inherited;
 end;
@@ -468,6 +534,8 @@ begin
     end;
   end;
 end;
+
+
 { TGdsInform }
 
 constructor TGdsInform.Create;
@@ -559,6 +627,7 @@ begin
       end;
     until (recSize = 0) or (numRead = 0);
     WriteLn('Count Records: ', recCount);
+    FLibrary.UsedLayerNumbers;
   finally
     FreeAndNil(FStream);
   end;
@@ -775,6 +844,7 @@ begin
     Result := Result.Remove(0, 4);
 end;
 
+
 constructor TGdsObject.Create;
 begin
   inherited Create;
@@ -809,7 +879,7 @@ end;
 
 constructor TGdsElement.Create;
 begin
-  inherited;
+  inherited Create;
   FExtentBoundsPtr := nil;
   FDataType := -1;
   FLayer := -1;
@@ -860,9 +930,9 @@ begin
   for i := Low(Coords) to High(Coords) do
     AStrings.Add(Format('CE(%2d): %6.4f, %6.4f', [i, Coords[i][0], Coords[i][1]]));
   if FLayer >= 0 then
-     AStrings.Add(Format('LAYER: %d', [FLayer]));
+    AStrings.Add(Format('LAYER: %d', [FLayer]));
   if FDataType >= 0 then
-     AStrings.Add(Format('DATATYPE: %d', [FDataType]));
+    AStrings.Add(Format('DATATYPE: %d', [FDataType]));
 end;
 
 
@@ -904,7 +974,7 @@ begin
     if not IsNan(FWidth) then
       Add(Format('WIDTH: %6.4f', [FWidth]));
     if FPathType >= 0 then;
-       Add(Format('PATHTYPE: %d', [FPathType]));
+    Add(Format('PATHTYPE: %d', [FPathType]));
   end;
 end;
 
@@ -1029,6 +1099,7 @@ begin
   FColStep := Math.NaN;
   FRowStep := Math.NaN;
 end;
+
 
 procedure TGdsAref.DebugStringsOn(AStrings: TStringList);
 begin
