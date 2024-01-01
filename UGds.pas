@@ -41,6 +41,8 @@ const
   htMAG = $1B;
   htANGLE = $1C;
   htCOLROW = $13;
+  htDATATYPE = $0E;
+
 
 const
   Pi_Half = 0.5 * Pi;
@@ -70,40 +72,54 @@ type
   protected
     function ShortClassName: string;
   public
+    constructor Create; virtual;
     function ToString: string; override;
     function GetRoot: TGdsObject;
     property Parent: TGdsObject read FParent;
   end;
 
 
+  { TGdsElement }
+
   TGdsElement = class(TGdsObject)
   private
     FCoords: TCoords;
     FLayer: integer;
+    FDataType: integer;
     FExtentBounds: TRectangleF;
     FExtentBoundsPtr: ^TRectangleF;
   public
     class function CreateFromHeaderByte(AByte: byte): TGdsElement;
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     function ToString: string; override;
     function GetExtentBounds: TRectangleF;
     function IsReference: boolean; virtual;
+    procedure DebugStringsOn(AStrings: TStringList); virtual;
   public
     property Coords: TCoords read FCoords;
   protected
     function LookupExtentBounds: TRectangleF; virtual;
   end;
 
+
   TGdsElementClass = class of TGdsElement;
+
 
   TGdsBoundary = class(TGdsElement)
   end;
 
+
+  { TGdsPath }
+
   TGdsPath = class(TGdsElement)
+  private
     FOutlineCoords: TCoords;
     FPathType: integer;
     FWidth: double;
+  public
+    constructor Create; override;
+    procedure DebugStringsOn(AStrings: TStringList); override;
     property PathType: integer read FPathType write FPathType;
     property Width: double read FWidth write FWidth;
     function OutlineCoords: TCoords;
@@ -123,6 +139,8 @@ type
     FTransform: TAffineMatrix;
     FTransformPtr: ^TAffineMatrix;
   public
+    constructor Create; override;
+    procedure DebugStringsOn(AStrings: TStringList); override;
     function ToString: string; override;
     function IsReference: boolean; override;
     function GetRefStructure: TGdsStructure;
@@ -137,12 +155,17 @@ type
   end;
 
 
+  { TGdsAref }
+
   TGdsAref = class(TGdsSref)
   private
     FCols: integer;
     FRows: integer;
     FColStep: double;
     FRowStep: double;
+  public
+    constructor Create; override;
+    procedure DebugStringsOn(AStrings: TStringList); override;
   end;
 
 
@@ -469,7 +492,6 @@ function InvertPoint(tx: TAffineMatrix; pt: TXY): TXY;
 var
   pt1, pt2: TPointF;
   t: TAffineMatrix;
-
 begin
   pt1.x := pt[0];
   pt1.y := pt[1];
@@ -489,7 +511,6 @@ var
   buff: TBytes;
   numRead: integer;
   recCount: longint;
-
 begin
   if not FileExists(FileName) then
   begin
@@ -546,13 +567,13 @@ end;
 
 procedure TGdsInform.HandleRecord(const ABytes: TBytes);
 var
-  int2array: TInt16s;
+  int2Array: TInt16s;
   doubleArray: TDoubles;
-  colPoint, rowPoint, xy1, xy2: TXY;
-  coords :TCoords;
+  colPoint, rowPoint: TXY;
   intCoords: TInt32s;
   i: integer;
   eAref: TGdsAref;
+
 
   procedure SetDateTimeItems(var ADateTime: TDateTimeItems; AInts: TInt16s;
     AOffset: integer);
@@ -607,7 +628,7 @@ begin
     begin
       intCoords := ExtractInt4(ABytes);
       SetLength(FElement.FCoords, Length(intCoords) div 2);
-      for i := 0 to High(FElement.FCoords) do
+      for i := Low(FElement.FCoords) to High(FElement.FCoords) do
       begin
         FElement.FCoords[i][0] := intCoords[i * 2 + 0] * FLibrary.FUserUnit;
         FElement.FCoords[i][1] := intCoords[i * 2 + 1] * FLibrary.FUserUnit;
@@ -621,10 +642,12 @@ begin
         eAref.FColStep := colPoint[0] / eAref.FCols;
         eAref.FRowStep := rowPoint[1] / eAref.FRows;
         SetLength(FElement.FCoords, 1);
-      end
+      end;
     end;
     htPATHTYPE:
       (FElement as TGdsPath).PathType := ExtractInt2(ABytes)[0];
+    htDATATYPE:
+      FElement.FDataType := ExtractInt2(ABytes)[0];
     htLAYER:
       FElement.FLayer := ExtractInt2(ABytes)[0];
     htWIDTH:
@@ -634,15 +657,20 @@ begin
     htSTRANS:
       (FElement as TGdsSref).FStrans := ExtractBitmask(ABytes);
     htMAG:
-      (FElement as TGdsSref).FMag := ExtractReal8(ABytes)[0];
+    begin
+      doubleArray := ExtractReal8(ABytes);
+      if SameValue(doubleArray[0], 0.0, 1e-8) then
+        DebugLn('Mag is 0.0');
+      (FElement as TGdsSref).FMag := doubleArray[0];
+    end;
     htANGLE:
       (FElement as TGdsSref).FAngleDeg := ExtractReal8(ABytes)[0];
     htCOLROW:
-      begin
-        int2array := ExtractInt2(ABytes);
-        (FElement as TGdsAref).FCols := int2array[0];
-        (FElement as TGdsAref).FRows := int2array[1];
-      end;
+    begin
+      int2array := ExtractInt2(ABytes);
+      (FElement as TGdsAref).FCols := int2array[0];
+      (FElement as TGdsAref).FRows := int2array[1];
+    end;
     htENDEL:
     begin
       if FElement <> nil then
@@ -747,6 +775,12 @@ begin
     Result := Result.Remove(0, 4);
 end;
 
+constructor TGdsObject.Create;
+begin
+  inherited Create;
+  FParent := nil;
+end;
+
 
 function TGdsObject.ToString: string;
 begin
@@ -777,6 +811,8 @@ constructor TGdsElement.Create;
 begin
   inherited;
   FExtentBoundsPtr := nil;
+  FDataType := -1;
+  FLayer := -1;
 end;
 
 
@@ -817,6 +853,19 @@ begin
 end;
 
 
+procedure TGdsElement.DebugStringsOn(AStrings: TStringList);
+var
+  i: integer;
+begin
+  for i := Low(Coords) to High(Coords) do
+    AStrings.Add(Format('CE(%2d): %6.4f, %6.4f', [i, Coords[i][0], Coords[i][1]]));
+  if FLayer >= 0 then
+     AStrings.Add(Format('LAYER: %d', [FLayer]));
+  if FDataType >= 0 then
+     AStrings.Add(Format('DATATYPE: %d', [FDataType]));
+end;
+
+
 class function TGdsElement.CreateFromHeaderByte(AByte: byte): TGdsElement;
 var
   clazz: TGdsElementClass;
@@ -837,7 +886,29 @@ begin
   Result := clazz.Create;
 end;
 
+
+constructor TGdsPath.Create;
+begin
+  inherited Create;
+  FWidth := Math.NaN;
+  FPathType := -1;
+end;
+
+
 { TGdsPath }
+procedure TGdsPath.DebugStringsOn(AStrings: TStringList);
+begin
+  inherited DebugStringsOn(AStrings);
+  with AStrings do
+  begin
+    if not IsNan(FWidth) then
+      Add(Format('WIDTH: %6.4f', [FWidth]));
+    if FPathType >= 0 then;
+       Add(Format('PATHTYPE: %d', [FPathType]));
+  end;
+end;
+
+
 function TGdsPath.OutlineCoords: TCoords;
 begin
   if FOutlineCoords = nil then
@@ -851,7 +922,16 @@ begin
   Result := inherited + '(' + Contents + ')';
 end;
 
+
 { TGdsSref }
+constructor TGdsSref.Create;
+begin
+  inherited Create;
+  FAngleDeg := 0.0;
+  FMag := 1.0;
+end;
+
+
 function TGdsSref.ToString: string;
 begin
   Result := inherited + '(' + RefName + ')';
@@ -903,6 +983,27 @@ begin
 end;
 
 
+procedure TGdsSref.DebugStringsOn(AStrings: TStringList);
+begin
+  inherited DebugStringsOn(AStrings);
+  with AStrings do
+  begin
+    if FRefName <> '' then
+      Add(Format('SNAME: "%s"', [FRefName]));
+    if FAngleDeg <> 0.0 then
+      Add(Format('ANGLE: %6.4f', [FAngleDeg]));
+    if FMag <> 1.0 then
+      Add(Format('MAG: %6.4f', [FMag]));
+    if IsAbsAngle then
+      Add('ABSANGLE: YES');
+    if IsAbsMag then
+      Add('ABSMAG: YES');
+    if IsRefrected then
+      Add('REFLECTED: YES');
+  end;
+end;
+
+
 function TGdsSref.LookupTransform: TAffineMatrix;
 var
   tx: TAffineMatrix;
@@ -916,6 +1017,33 @@ begin
     tx[2, 2] := -tx[2, 2];
   end;
   Result := tx;
+end;
+
+{ TGdsAref }
+
+constructor TGdsAref.Create;
+begin
+  inherited Create;
+  FRows := -1;
+  FCols := -1;
+  FColStep := Math.NaN;
+  FRowStep := Math.NaN;
+end;
+
+procedure TGdsAref.DebugStringsOn(AStrings: TStringList);
+begin
+  inherited DebugStringsOn(AStrings);
+  with AStrings do
+  begin
+    if FRows >= 0 then
+      Add(Format('ROWS: %d', [FRows]));
+    if FCols >= 0 then
+      Add(Format('COLS: %d', [FCols]));
+    if not Math.IsNaN(FColStep) then
+      Add(Format('COLSTEP: %6.4f', [FColStep]));
+    if not Math.IsNaN(FRowStep) then
+      Add(Format('ROWSTEP: %6.4f', [FRowStep]));
+  end;
 end;
 
 

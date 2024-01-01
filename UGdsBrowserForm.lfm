@@ -90,6 +90,7 @@ object GdsBrowserForm: TGdsBrowserForm
       ReadOnly = True
       RowSelect = True
       TabOrder = 1
+      Visible = False
       ViewStyle = vsReport
     end
     object ElementListBox: TListBox

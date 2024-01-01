@@ -29,6 +29,8 @@ type
     procedure StrokeCoords(ACanvas: TCanvas; ACoords: TCoords);
   end;
 
+  { TElementDrawer }
+
   TElementDrawer = class(TGdsDrawer)
     Element: TGdsElement;
     procedure DrawOn(ACanvas: TCanvas); virtual;
@@ -54,6 +56,8 @@ type
     procedure DrawOn(ACanvas: TCanvas); override;
   end;
 
+  { TArefDrawer }
+
   TArefDrawer = class(TSrefDrawer)
     procedure DrawOn(ACanvas: TCanvas); override;
   end;
@@ -63,6 +67,7 @@ implementation
 
 uses
   Types, UGdsStation, UGeometryUtils, UColorUtils, LazLogger;
+
 
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
 begin
@@ -83,10 +88,7 @@ var
   savedColor: TColor;
 begin
   DebugLn('TPathDrawer.DrawOn');
-  savedColor := ACanvas.Pen.Color;
-  ACanvas.Pen.Color := clGreen;
   StrokeCoords(ACanvas, (Element as TGdsPath).OutlineCoords);
-  ACanvas.Pen.Color := savedColor;
 end;
 
 
@@ -125,6 +127,7 @@ begin
   FDrawerMap['TGdsAref'] := TArefDrawer.Create(FViewport);
 end;
 
+
 destructor TGdsView.Destroy;
 begin
   FreeAndNil(FDrawerMap);
@@ -140,15 +143,13 @@ end;
 
 procedure TGdsView.HandlePaint(Sender: TObject);
 
-const
-  textHeight = 20;
-
 var
   E: TGdsElement;
   DP: TPointF;
   i: integer;
   GD: TElementDrawer;
   textY: integer;
+  textHeight: integer;
 
   procedure DrawColors;
   var
@@ -161,7 +162,7 @@ var
   begin
     ThisMany := 100;
     colors := ColorWheel(ThisMany, 0.7, 1.0, 0.0);
-    step := Round(Double(ClientWidth) / ThisMany);
+    step := Round(double(ClientWidth) / ThisMany);
     savedColor := Canvas.Brush.Color;
     y1 := ClientHeight - 50;
     y2 := ClientHeight;
@@ -176,9 +177,16 @@ var
     colors := nil;
   end;
 
+
   procedure DrawDebugInfo;
+  var
+    stringList: TStringList;
+    each: string;
   begin
     Canvas.Font.Color := clYellow;
+    Canvas.Font.Name := 'Courier New';
+    Canvas.Font.Size := 18;
+    textHeight := trunc(Canvas.Font.Size * 1.8);
     textY := 10;
     Canvas.TextOut(10, textY, GdsStation.GdsStructure.Name);
     Inc(textY, textHeight);
@@ -186,8 +194,14 @@ var
       GdsStation.GdsStructure.GetExtentBounds));
     if GdsStation.GdsElement <> nil then
     begin
-      Inc(textY, textHeight);
-      Canvas.TextOut(10, textY, GdsStation.GdsElement.ToString);
+      stringList := TStringList.Create;
+      GdsStation.GdsElement.DebugStringsOn(stringList);
+      for each in stringList do
+      begin
+        Inc(textY, textHeight);
+        Canvas.Textout(10, textY, each);
+      end;
+      stringList.Free;
     end;
   end;
 
@@ -202,14 +216,22 @@ begin
     Exit;
   end;
 
-  DrawDebugInfo;
-  Canvas.Pen.Color := clWhite;
+  Canvas.Pen.Color := clGray;
   for E in GdsStation.GdsStructure.Elements do
   begin
     GD := FDrawerMap[E.ClassName];
     GD.Element := E;
     GD.DrawOn(Canvas);
   end;
+  if Assigned(GdsStation.GdsElement) then
+  begin
+    E := GdsStation.GdsElement;
+    GD := FDrawerMap[E.ClassName];
+    GD.Element := E;
+    Canvas.Pen.Color := clWhite;
+    GD.DrawOn(Canvas);
+  end;
+  DrawDebugInfo;
 end;
 
 
