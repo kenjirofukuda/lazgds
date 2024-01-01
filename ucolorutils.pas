@@ -2,6 +2,10 @@ unit UColorUtils;
 
 {$mode ObjFPC}{$H+}
 
+{ Copy from: mbColorLibLaz v2.2.1
+  reason: RGBHSVUtils not export HSVToColor. why prototype comment out
+}
+
 interface
 
 uses

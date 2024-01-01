@@ -6,7 +6,7 @@ interface
 
 
 uses
-  Classes, SysUtils, Types, fgl, UGeometryUtils;
+  Classes, SysUtils, Types, fgl, BGRATransform, UGeometryUtils;
 
 const
   dtNODATA = $00;
@@ -37,10 +37,15 @@ const
   htPATHTYPE = $21;
   htLAYER = $0D;
   htWIDTH = $0F;
+  htSTRANS = $1A;
+  htMAG = $1B;
+  htANGLE = $1C;
+  htCOLROW = $13;
 
 const
   Pi_Half = 0.5 * Pi;
   Pi_Double = 2.0 * Pi;
+
   BUTT_END = 0;
   ROUND_END = 1;
   EXTENDED_END = 2;
@@ -73,7 +78,6 @@ type
 
   TGdsElement = class(TGdsObject)
   private
-    FXY: TInt32s;
     FCoords: TCoords;
     FLayer: integer;
     FExtentBounds: TRectangleF;
@@ -83,15 +87,12 @@ type
     constructor Create;
     destructor Destroy; override;
     function ToString: string; override;
-    function GetCoords: TCoords;
     function GetExtentBounds: TRectangleF;
     function IsReference: boolean; virtual;
   public
-    property Coords: TCoords read GetCoords;
+    property Coords: TCoords read FCoords;
   protected
     function LookupExtentBounds: TRectangleF; virtual;
-  private
-    function LookupCoords: TCoords;
   end;
 
   TGdsElementClass = class of TGdsElement;
@@ -108,7 +109,44 @@ type
     function OutlineCoords: TCoords;
   end;
 
-  TGdsText = class(TGdsElement)
+  TGdsStructure = class;
+
+  { TGdsSref }
+
+  TGdsSref = class(TGdsElement)
+  private
+    FRefName: string;
+    FRefStructure: TGdsStructure;
+    FAngleDeg: double;
+    FMag: double;
+    FStrans: uint16;
+    FTransform: TAffineMatrix;
+    FTransformPtr: ^TAffineMatrix;
+  public
+    function ToString: string; override;
+    function IsReference: boolean; override;
+    function GetRefStructure: TGdsStructure;
+    function GetTransform: TAffineMatrix;
+    function IsRefrected: boolean;
+    function IsAbsAngle: boolean;
+    function IsAbsMag: boolean;
+    property RefName: string read FRefName;
+    property RefStructure: TGdsStructure read GetRefStructure;
+  private
+    function LookupTransform: TAffineMatrix;
+  end;
+
+
+  TGdsAref = class(TGdsSref)
+  private
+    FCols: integer;
+    FRows: integer;
+    FColStep: double;
+    FRowStep: double;
+  end;
+
+
+  TGdsText = class(TGdsSref)
   private
     FContents: string;
   public
@@ -116,28 +154,14 @@ type
     property Contents: string read FContents;
   end;
 
-  TGdsStructure = class;
-
-  TGdsSref = class(TGdsElement)
-  private
-    FRefName: string;
-    FRefStructure: TGdsStructure;
-  public
-    function ToString: string; override;
-    function IsReference: boolean; override;
-    function GetRefStructure: TGdsStructure;
-    property RefName: string read FRefName;
-    property RefStructure: TGdsStructure read GetRefStructure;
-  end;
-
-  TGdsAref = class(TGdsSref)
-  end;
 
   TGdsNode = class(TGdsElement)
   end;
 
+
   TGdsBox = class(TGdsElement)
   end;
+
 
   TGdsElements = specialize TFPGObjectList<TGdsElement>;
 
@@ -188,6 +212,8 @@ type
   TGdsInformBytesEvent = procedure(const ABytes: TBytes;
     ASender: TGdsInform) of object;
 
+  { TGdsInform }
+
   TGdsInform = class(TObject)
   private
     FOnBytes: TGdsInformBytesEvent;
@@ -206,6 +232,7 @@ type
     function ExtractAscii(const ABytes: TBytes): string;
   private
     procedure HandleRecord(const ABytes: TBytes);
+    function ExtractBitmask(const ABytes: TBytes): uint16;
     function ExtractInt2(const ABytes: TBytes): TInt16s;
     function ExtractInt4(const ABytes: TBytes): TInt32s;
     function ExtractReal8(const ABytes: TBytes): TDoubles;
@@ -215,7 +242,7 @@ function FileSizeEx(const AFileName: string): longint;
 function CalcBounds(Coords: TCoords): TRectangleF;
 function pathOutlineCoords(ACoords: TCoords; APathType: integer;
   AWidth: double): TCoords;
-
+// function CoordsToPoints: array of TPointF;
 
 implementation
 
@@ -238,6 +265,12 @@ begin
     Inc(Result);
     Result := -Result;
   end;
+end;
+
+
+function GDSreadBtimask(rec: pbyte): uint16;
+begin
+  Result := BEtoN(PUint16(rec)^);
 end;
 
 
@@ -432,6 +465,23 @@ begin
 end;
 
 
+function InvertPoint(tx: TAffineMatrix; pt: TXY): TXY;
+var
+  pt1, pt2: TPointF;
+  t: TAffineMatrix;
+
+begin
+  pt1.x := pt[0];
+  pt1.y := pt[1];
+  if IsAffineMatrixInversible(tx) then
+    pt2 := AffineMatrixInverse(tx) * pt1
+  else
+    pt2 := pt1;
+  Result[0] := pt2.x;
+  Result[1] := pt2.y;
+end;
+
+
 procedure TGdsInform.Execute;
 var
   recSize: integer;
@@ -439,6 +489,7 @@ var
   buff: TBytes;
   numRead: integer;
   recCount: longint;
+
 begin
   if not FileExists(FileName) then
   begin
@@ -497,7 +548,11 @@ procedure TGdsInform.HandleRecord(const ABytes: TBytes);
 var
   int2array: TInt16s;
   doubleArray: TDoubles;
-
+  colPoint, rowPoint, xy1, xy2: TXY;
+  coords :TCoords;
+  intCoords: TInt32s;
+  i: integer;
+  eAref: TGdsAref;
 
   procedure SetDateTimeItems(var ADateTime: TDateTimeItems; AInts: TInt16s;
     AOffset: integer);
@@ -549,7 +604,25 @@ begin
     htSTRING:
       (FElement as TGdsText).FContents := ExtractAScii(ABytes);
     htXY:
-      FElement.FXY := ExtractInt4(ABytes);
+    begin
+      intCoords := ExtractInt4(ABytes);
+      SetLength(FElement.FCoords, Length(intCoords) div 2);
+      for i := 0 to High(FElement.FCoords) do
+      begin
+        FElement.FCoords[i][0] := intCoords[i * 2 + 0] * FLibrary.FUserUnit;
+        FElement.FCoords[i][1] := intCoords[i * 2 + 1] * FLibrary.FUserUnit;
+      end;
+      intCoords := nil;
+      if FElement.ClassType = TGdsAref then
+      begin
+        eARef := (FElement as TGdsAref);
+        colPoint := InvertPoint(eAref.GetTransform, eAref.FCoords[1]);
+        rowPoint := InvertPoint(eAref.GetTransform, eAref.FCoords[2]);
+        eAref.FColStep := colPoint[0] / eAref.FCols;
+        eAref.FRowStep := rowPoint[1] / eAref.FRows;
+        SetLength(FElement.FCoords, 1);
+      end
+    end;
     htPATHTYPE:
       (FElement as TGdsPath).PathType := ExtractInt2(ABytes)[0];
     htLAYER:
@@ -558,6 +631,18 @@ begin
     begin
       (FElement as TGdsPath).Width := ExtractInt4(ABytes)[0] * FLibrary.FUserUnit;
     end;
+    htSTRANS:
+      (FElement as TGdsSref).FStrans := ExtractBitmask(ABytes);
+    htMAG:
+      (FElement as TGdsSref).FMag := ExtractReal8(ABytes)[0];
+    htANGLE:
+      (FElement as TGdsSref).FAngleDeg := ExtractReal8(ABytes)[0];
+    htCOLROW:
+      begin
+        int2array := ExtractInt2(ABytes);
+        (FElement as TGdsAref).FCols := int2array[0];
+        (FElement as TGdsAref).FRows := int2array[1];
+      end;
     htENDEL:
     begin
       if FElement <> nil then
@@ -569,6 +654,12 @@ begin
     end;
     else
   end;
+end;
+
+
+function TGdsInform.ExtractBitmask(const ABytes: TBytes): uint16;
+begin
+  Result := GDSreadBtimask(@ABytes[2]);
 end;
 
 
@@ -692,7 +783,6 @@ end;
 destructor TGdsElement.Destroy;
 begin
   DebugLn('TGdsElement.Destroy');
-  FXY := nil;
   FCoords := nil;
   inherited;
 end;
@@ -704,27 +794,9 @@ begin
 end;
 
 
-function TGdsElement.LookupCoords: TCoords;
-var
-  lib: TGdsLibrary;
-  AXY: TXY;
-  i: integer;
-begin
-  Result := [];
-  lib := GetRoot as TGdsLibrary;
-  SetLength(Result, Length(FXY) div 2);
-  for i := 0 to High(Result) do
-  begin
-    AXY[0] := FXY[i * 2 + 0] * lib.FUserUnit;
-    AXY[1] := FXY[i * 2 + 1] * lib.FUserUnit;
-    Result[i] := AXY;
-  end;
-end;
-
-
 function TGdsElement.LookupExtentBounds: TRectangleF;
 begin
-  Result := CalcBounds(GetCoords);
+  Result := CalcBounds(Coords);
 end;
 
 
@@ -736,16 +808,6 @@ begin
     FExtentBoundsPtr := @FExtentBounds;
   end;
   Result := FExtentBounds;
-end;
-
-
-function TGdsElement.GetCoords: TCoords;
-begin
-  if FCoords = nil then
-  begin
-    FCoords := LookupCoords;
-  end;
-  Result := FCoords;
 end;
 
 
@@ -809,6 +871,51 @@ begin
     FRefStructure := (Parent as TGdsLibrary).StructureNamed(RefName);
   end;
   Result := FRefStructure;
+end;
+
+
+function TGdsSref.GetTransform: TAffineMatrix;
+begin
+  if not Assigned(FTransformPtr) then
+  begin
+    FTransform := LookupTransform;
+    FTransformPtr := @FTransform;
+  end;
+  Result := FTransform;
+end;
+
+
+function TGdsSref.IsRefrected: boolean; inline;
+begin
+  Result := (FStrans and $8000) <> 0;
+end;
+
+
+function TGdsSref.IsAbsAngle: boolean; inline;
+begin
+  Result := (FStrans and $0001) <> 0;
+end;
+
+
+function TGdsSref.IsAbsMag: boolean; inline;
+begin
+  Result := (FStrans and $0002) <> 0;
+end;
+
+
+function TGdsSref.LookupTransform: TAffineMatrix;
+var
+  tx: TAffineMatrix;
+begin
+  tx := AffineMatrixTranslation(Coords[0][0], Coords[0][1]);
+  tx *= AffineMatrixScale(FMag, FMag);
+  tx *= AffineMatrixRotationDeg(Math.RadToDeg(FAngleDeg));
+  if IsRefrected then
+  begin
+    tx[1, 2] := -tx[1, 2];
+    tx[2, 2] := -tx[2, 2];
+  end;
+  Result := tx;
 end;
 
 

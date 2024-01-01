@@ -141,6 +141,7 @@ begin
     Exit;
   S := StructureListBox.Items.Objects[i] as TGdsStructure;
   GdsStation.GdsStructure := S;
+  GdsStation.GdsElement := nil;
   FGdsView.Viewport.SetWorldBounds(S.GetExtentBounds);
   FGdsView.Invalidate;
   ElementListBox.Clear;
@@ -163,6 +164,7 @@ begin
     Exit;
   E := ElementListBox.Items.Objects[i] as TGdsElement;
   GdsStation.GdsElement := E;
+  FGdsView.Invalidate;
   XYListView.Clear;
   for AXY in E.Coords do
   begin

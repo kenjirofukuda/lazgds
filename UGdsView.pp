@@ -12,9 +12,12 @@ type
   TElementDrawer = class;
   TDrawerMap = specialize TFPGMapObject<string, TElementDrawer>;
 
+  { TGdsView }
+
   TGdsView = class(TWorldView)
     constructor Create(AOwner: TComponent); override;
   public
+    destructor Destroy; override;
     procedure HandlePaint(Sender: TObject); override;
     function GdsDrawer: TGdsDrawer;
   private
@@ -122,6 +125,12 @@ begin
   FDrawerMap['TGdsAref'] := TArefDrawer.Create(FViewport);
 end;
 
+destructor TGdsView.Destroy;
+begin
+  FreeAndNil(FDrawerMap);
+  inherited Destroy;
+end;
+
 
 function TGdsView.GdsDrawer: TGdsDrawer; inline;
 begin
@@ -130,11 +139,16 @@ end;
 
 
 procedure TGdsView.HandlePaint(Sender: TObject);
+
+const
+  textHeight = 20;
+
 var
   E: TGdsElement;
   DP: TPointF;
   i: integer;
   GD: TElementDrawer;
+  textY: integer;
 
   procedure DrawColors;
   var
@@ -162,6 +176,21 @@ var
     colors := nil;
   end;
 
+  procedure DrawDebugInfo;
+  begin
+    Canvas.Font.Color := clYellow;
+    textY := 10;
+    Canvas.TextOut(10, textY, GdsStation.GdsStructure.Name);
+    Inc(textY, textHeight);
+    Canvas.TextOut(10, textY, StringFromRectangleF(
+      GdsStation.GdsStructure.GetExtentBounds));
+    if GdsStation.GdsElement <> nil then
+    begin
+      Inc(textY, textHeight);
+      Canvas.TextOut(10, textY, GdsStation.GdsElement.ToString);
+    end;
+  end;
+
 begin
 
   Canvas.Brush.Color := clNavy;
@@ -173,10 +202,7 @@ begin
     Exit;
   end;
 
-  Canvas.Font.Color := clYellow;
-  Canvas.TextOut(10, 10, GdsStation.GdsStructure.Name);
-  Canvas.TextOut(10, 30, StringFromRectangleF(
-    GdsStation.GdsStructure.GetExtentBounds));
+  DrawDebugInfo;
   Canvas.Pen.Color := clWhite;
   for E in GdsStation.GdsStructure.Elements do
   begin

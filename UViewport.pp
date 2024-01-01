@@ -158,7 +158,6 @@ function TViewport.LookupBasicTransform: TAffineMatrix;
 var
   tx: TAffineMatrix;
 begin
-  // tx := AffineMatrixIdentity;
   tx := AffineMatrixTranslation(FPortCenter.x, (FPortHeight - FPortCenter.y));
   tx *= AffineMatrixScale(FWorldScale, -FWorldScale);
   tx *= AffineMatrixTranslation(-FWorldCenter.x, -FWorldCenter.y);
