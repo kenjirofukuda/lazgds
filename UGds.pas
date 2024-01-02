@@ -120,6 +120,7 @@ type
     FWidth: double;
   public
     constructor Create; override;
+    destructor Destroy; override;
     procedure DebugStringsOn(AStrings: TStringList); override;
     property PathType: integer read FPathType write FPathType;
     property Width: double read FWidth write FWidth;
@@ -158,6 +159,7 @@ type
 
 
   { TGdsAref }
+  TAffineMatrixArray = array of TAffineMatrix;
 
   TGdsAref = class(TGdsSref)
   private
@@ -165,9 +167,14 @@ type
     FRows: integer;
     FColStep: double;
     FRowStep: double;
+    FRepeatedTransforms: TAffineMatrixArray;
   public
     constructor Create; override;
+    destructor Destroy; override;
     procedure DebugStringsOn(AStrings: TStringList); override;
+    function RepeatedTransforms: TAffineMatrixArray;
+  private
+    function LookupRepeatedTransforms: TAffineMatrixArray;
   end;
 
 
@@ -414,10 +421,11 @@ begin
   Result := FStructureMap.KeyData[Name];
 end;
 
-function compInteger(const Item1, Item2: Integer): Integer;
+
+function compInteger(const Item1, Item2: integer): integer;
 begin
   if Item1 > Item2 then
-     Result := 1
+    Result := 1
   else if Item1 < Item2 then
     Result := -1
   else
@@ -433,8 +441,7 @@ var
   layer: integer;
   i: integer;
   layerList: TIntList;
-  layers : TInt32s;
-
+  layers: TInt32s;
 begin
   layerList := TIntList.Create;
   layerElementsMap := TLayerElementsMap.Create(False);
@@ -458,7 +465,7 @@ begin
       layerList.Add(layer);
     end;
     layerList.Sort(@compInteger);
-    SetLength(layers, layerList.count);
+    SetLength(layers, layerList.Count);
     for i := Low(layers) to High(layers) do
     begin
       layers[i] := layerList[i];
@@ -560,19 +567,18 @@ begin
 end;
 
 
-function InvertPoint(tx: TAffineMatrix; pt: TXY): TXY;
+function InvertPoint(const tx: TAffineMatrix; pt: TXY): TXY;
 var
-  pt1, pt2: TPointF;
-  t: TAffineMatrix;
+  x, y, det, f: single;
 begin
-  pt1.x := pt[0];
-  pt1.y := pt[1];
-  if IsAffineMatrixInversible(tx) then
-    pt2 := AffineMatrixInverse(tx) * pt1
-  else
-    pt2 := pt1;
-  Result[0] := pt2.x;
-  Result[1] := pt2.y;
+  x := pt[0] - tx[1, 3];
+  y := pt[1] - tx[2, 3];
+  det := tx[1, 1] * tx[2, 2] - tx[1, 2] * tx[2, 1];
+  if det = 0 then
+    raise Exception.Create('Not inversible');
+  f := 1 / det;
+  Result[0] := f * ((x * tx[2, 2]) - (tx[1, 2] * y));
+  Result[1] := f * ((tx[1, 1] * y) - (x * tx[2, 1]));
 end;
 
 
@@ -711,10 +717,18 @@ begin
       begin
         eARef := (FElement as TGdsAref);
         colPoint := InvertPoint(eAref.GetTransform, eAref.FCoords[1]);
+        //if colPoint[0] < 0.0 then
+        //    raise Exception.Create('Error in AREF! Found a y-axis mirrored array. This is impossible so I''m exiting.');
+        //if not SameValue(colPoint[1], 0.0) then
+        //    raise Exception.Create('Error in AREF! The second point in XY is broken.');
         rowPoint := InvertPoint(eAref.GetTransform, eAref.FCoords[2]);
+        //if not SameValue(rowPoint[0], 0.0) then
+        //    raise Exception.Create('Error in AREF! The third point in XY is broken.');
         eAref.FColStep := colPoint[0] / eAref.FCols;
         eAref.FRowStep := rowPoint[1] / eAref.FRows;
-        SetLength(FElement.FCoords, 1);
+        //if rowPoint[1] < 0.0 then
+        //   eAref.FRowStep := eAref.FRowStep * -1.0;
+        //SetLength(FElement.FCoords, 1);
       end;
     end;
     htPATHTYPE:
@@ -961,6 +975,7 @@ begin
 end;
 
 
+{ TGdsPath }
 constructor TGdsPath.Create;
 begin
   inherited Create;
@@ -969,7 +984,13 @@ begin
 end;
 
 
-{ TGdsPath }
+destructor TGdsPath.Destroy;
+begin
+  FOutlineCoords := nil;
+  inherited Destroy;
+end;
+
+
 procedure TGdsPath.DebugStringsOn(AStrings: TStringList);
 begin
   inherited DebugStringsOn(AStrings);
@@ -1035,7 +1056,7 @@ begin
 end;
 
 
-function TGdsSref.GetTransform: TAffineMatrix;
+function TGdsSref.GetTransform: TAffineMatrix; inline;
 begin
   if not Assigned(FTransformPtr) then
   begin
@@ -1097,7 +1118,7 @@ begin
   pointList := TXYPointList.Create;
   for pt in refBounds.CornerPoints do
   begin
-     pointList.Add(tx * pt);
+    pointList.Add(tx * pt);
   end;
   Result := CalcExtent(pointList);
   pointList.Free;
@@ -1107,10 +1128,14 @@ end;
 function TGdsSref.LookupTransform: TAffineMatrix;
 var
   tx: TAffineMatrix;
+  rad: single;
 begin
+  rad := Math.DegToRad(FAngleDeg);
   tx := AffineMatrixTranslation(Coords[0][0], Coords[0][1]);
   tx *= AffineMatrixScale(FMag, FMag);
-  tx *= AffineMatrixRotationRad(Math.DegToRad(FAngleDeg));
+  tx *= AffineMatrix(cos(rad), -sin(rad), 0,
+                     sin(rad), cos(rad), 0);
+  //  tx *= AffineMatrixRotationRad(Math.DegToRad(FAngleDeg));
   if IsRefrected then
   begin
     tx[1, 2] := -tx[1, 2];
@@ -1131,6 +1156,13 @@ begin
 end;
 
 
+destructor TGdsAref.Destroy;
+begin
+  FRepeatedTransforms := nil;
+  inherited Destroy;
+end;
+
+
 procedure TGdsAref.DebugStringsOn(AStrings: TStringList);
 begin
   inherited DebugStringsOn(AStrings);
@@ -1148,6 +1180,34 @@ begin
 end;
 
 
+function TGdsAref.RepeatedTransforms: TAffineMatrixArray;
+begin
+  if FRepeatedTransforms = nil then
+    FRepeatedTransforms := LookupRepeatedTransforms;
+  Result := FRepeatedTransforms;
+end;
+
+
+function TGdsAref.LookupRepeatedTransforms: TAffineMatrixArray;
+var
+  otx: TAffineMatrix;
+  ix, iy, n: integer;
+begin
+  Result := [];
+  SetLength(Result, FCols * FRows);
+  n := 0;
+  for ix := 0 to FCols - 1 do
+  begin
+    for iy := 0 to FRows - 1 do
+    begin
+      otx := AffineMatrixTranslation(ix * FColStep, iy * FRowStep);
+      Result[n] := GetTransform * otx;
+      Inc(n);
+    end;
+  end;
+end;
+
+
 function getAngle(x1: double; y1: double; x2: double; y2: double): double;
 var
   angle: double;
@@ -1155,7 +1215,8 @@ var
 begin
   if x1 = x2 then
   begin
-    if y2 > y1 then direction := 1
+    if y2 > y1 then
+      direction := 1
     else
       direction := -1;
     angle := Pi_Half * direction;

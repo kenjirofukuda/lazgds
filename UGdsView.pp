@@ -5,7 +5,8 @@ unit UGdsView;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Controls, fgl, UWorldView, UGds;
+  Classes, SysUtils, Graphics, Controls, fgl, BGRATransform,
+  UWorldView, UGds;
 
 type
   TGdsDrawer = class;
@@ -130,13 +131,9 @@ end;
 
 procedure TSrefDrawer.DrawOn(ACanvas: TCanvas);
 var
-  Origin: TPointF;
   eSref: TGdsSref;
 begin
   DebugLn('TSrefDrawer.DrawOn');
-  //Origin := TPointF.Create(Element.Coords[0][0], Element.Coords[0][1]);
-  //DebugLn(StringFromPointF(Origin));
-  //FramePointOn(ACanvas, Origin, 4);
   eSref := (Element as TGdsSref);
   Viewport.PushTransform(eSref.GetTransform);
   GdsView.DrawStructure(eSref.RefStructure);
@@ -146,12 +143,17 @@ end;
 
 procedure TArefDrawer.DrawOn(ACanvas: TCanvas);
 var
-  Origin: TPointF;
+  eAref: TGdsAref;
+  otx: TAffineMatrix;
 begin
   DebugLn('TArefDrawer.DrawOn');
-  //Origin := TPointF.Create(Element.Coords[0][0], Element.Coords[0][1]);
-  //DebugLn(StringFromPointF(Origin));
-  //FillPointOn(ACanvas, Origin, 4);
+  eAref := (Element as TGdsAref);
+  for otx in eAref.RepeatedTransforms do
+  begin
+    Viewport.PushTransform(otx);
+    GdsView.DrawStructure(eAref.RefStructure);
+    Viewport.PopTransform;
+  end;
 end;
 
 
