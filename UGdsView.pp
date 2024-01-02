@@ -25,6 +25,7 @@ type
     function GdsDrawer: TGdsDrawer;
   private
     FDrawerMap: TDrawerMap;
+    FDrawMilliSeconds: Int64;
   end;
 
   TGdsDrawer = class(TWorldDrawer)
@@ -39,10 +40,10 @@ type
     Element: TGdsElement;
     procedure DrawOn(ACanvas: TCanvas); virtual;
 
-    procedure DoStrokeOn(ACanvas: TCanvas); virtual;
+    procedure DoStrokeOn(ACanvas: TCanvas);
     procedure StrokeOn(ACanvas: TCanvas); virtual;
 
-    procedure DoFillOn(ACanvas: TCanvas); virtual;
+    procedure DoFillOn(ACanvas: TCanvas);
     procedure FillOn(ACanvas: TCanvas); virtual;
   end;
 
@@ -75,13 +76,14 @@ type
 implementation
 
 uses
-  Types, UGdsStation, UGeometryUtils, UColorUtils, LazLogger;
+  Types, DateUtils, LazLogger,
+  UGdsStation, UGeometryUtils, UColorUtils;
 
 
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
 begin
-  DebugLn('TElementDrawer.DrawOn');
-  DoFillOn(ACanvas);
+  //DebugLn('TElementDrawer.DrawOn');
+  // DoFillOn(ACanvas);
   DoStrokeOn(ACanvas);
 end;
 
@@ -90,10 +92,10 @@ procedure TElementDrawer.DoStrokeOn(ACanvas: TCanvas);
 var
   savedColor: TColor;
 begin
-  savedColor := ACanvas.Pen.Color;
+//  savedColor := ACanvas.Pen.Color;
   ACanvas.Pen.Color := GdsStation.LayerToColor(Element.Layer);
   StrokeOn(ACanvas);
-  ACanvas.Pen.Color := savedColor;
+//  ACanvas.Pen.Color := savedColor;
 end;
 
 
@@ -121,7 +123,7 @@ end;
 
 procedure TPathDrawer.StrokeOn(ACanvas: TCanvas);
 begin
-  DebugLn('TPathDrawer.StrokeOn');
+  //DebugLn('TPathDrawer.StrokeOn');
   // Path Center
   // inherited StrokeOn(ACanvas);
   // Path OutLine
@@ -133,7 +135,7 @@ procedure TSrefDrawer.DrawOn(ACanvas: TCanvas);
 var
   eSref: TGdsSref;
 begin
-  DebugLn('TSrefDrawer.DrawOn');
+  //DebugLn('TSrefDrawer.DrawOn');
   eSref := (Element as TGdsSref);
   Viewport.PushTransform(eSref.GetTransform);
   GdsView.DrawStructure(eSref.RefStructure);
@@ -146,7 +148,7 @@ var
   eAref: TGdsAref;
   otx: TAffineMatrix;
 begin
-  DebugLn('TArefDrawer.DrawOn');
+  //DebugLn('TArefDrawer.DrawOn');
   eAref := (Element as TGdsAref);
   for otx in eAref.RepeatedTransforms do
   begin
@@ -168,6 +170,7 @@ begin
   FDrawerMap['TGdsBox'] := TBoxDrawer.Create(FViewport);
   FDrawerMap['TGdsSref'] := TSrefDrawer.Create(FViewport);
   FDrawerMap['TGdsAref'] := TArefDrawer.Create(FViewport);
+  FDrawMilliSeconds := -1;
 end;
 
 
@@ -192,7 +195,7 @@ var
   GD: TElementDrawer;
   textY: integer;
   textHeight: integer;
-
+  startTime, endTime: TDateTime;
 
   procedure DrawColors;
   var
@@ -246,6 +249,8 @@ var
       end;
       stringList.Free;
     end;
+    Canvas.TextOut(10, ClientHeight - textHeight,
+                   Format('DRAWTIME: %d msecs', [FDrawMilliSeconds]));
   end;
 
 begin
@@ -259,7 +264,10 @@ begin
     Exit;
   end;
 
+  startTime := Time;
   DrawStructure(GdsStation.GdsStructure);
+  endTime := Time;
+
   if Assigned(GdsStation.GdsElement) then
   begin
     E := GdsStation.GdsElement;
@@ -270,6 +278,7 @@ begin
     GD.StrokeOn(Canvas);
     Canvas.Pen.Width := 1;
   end;
+  FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
   DrawDebugInfo;
 end;
 

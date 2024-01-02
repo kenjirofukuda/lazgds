@@ -86,7 +86,6 @@ end;
 
 procedure TViewport.SetPortWidth(Width: integer);
 begin
-  DebugLn(IntToStr(Width));
   if Width <> FPortWidth then
   begin
     FPortWidth := Width;
@@ -97,7 +96,6 @@ end;
 
 procedure TViewport.SetPortHeight(Height: integer);
 begin
-  DebugLn(IntToStr(Height));
   if Height <> FPortHeight then
   begin
     FPortHeight := Height;

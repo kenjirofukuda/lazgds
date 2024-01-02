@@ -652,7 +652,7 @@ var
   intCoords: TInt32s;
   i: integer;
   eAref: TGdsAref;
-
+  strictCheck: boolean;
 
   procedure SetDateTimeItems(var ADateTime: TDateTimeItems; AInts: TInt16s;
     AOffset: integer);
@@ -715,20 +715,22 @@ begin
       intCoords := nil;
       if FElement.ClassType = TGdsAref then
       begin
+        strictCheck := False;
         eARef := (FElement as TGdsAref);
         colPoint := InvertPoint(eAref.GetTransform, eAref.FCoords[1]);
-        //if colPoint[0] < 0.0 then
-        //    raise Exception.Create('Error in AREF! Found a y-axis mirrored array. This is impossible so I''m exiting.');
-        //if not SameValue(colPoint[1], 0.0) then
-        //    raise Exception.Create('Error in AREF! The second point in XY is broken.');
+        if colPoint[0] < 0.0 then
+          raise Exception.Create(
+            'Error in AREF! Found a y-axis mirrored array. This is impossible so I''m exiting.');
+        if strictCheck and (not SameValue(colPoint[1], 0.0)) then
+          raise Exception.Create('Error in AREF! The second point in XY is broken.');
         rowPoint := InvertPoint(eAref.GetTransform, eAref.FCoords[2]);
-        //if not SameValue(rowPoint[0], 0.0) then
-        //    raise Exception.Create('Error in AREF! The third point in XY is broken.');
+        if strictCheck and (not SameValue(rowPoint[0], 0.0)) then
+          raise Exception.Create('Error in AREF! The third point in XY is broken.');
         eAref.FColStep := colPoint[0] / eAref.FCols;
         eAref.FRowStep := rowPoint[1] / eAref.FRows;
-        //if rowPoint[1] < 0.0 then
-        //   eAref.FRowStep := eAref.FRowStep * -1.0;
-        //SetLength(FElement.FCoords, 1);
+        if strictCheck and (rowPoint[1] < 0.0) then
+          eAref.FRowStep := eAref.FRowStep * -1.0;
+        SetLength(FElement.FCoords, 1);
       end;
     end;
     htPATHTYPE:
@@ -745,10 +747,7 @@ begin
       (FElement as TGdsSref).FStrans := ExtractBitmask(ABytes);
     htMAG:
     begin
-      doubleArray := ExtractReal8(ABytes);
-      if SameValue(doubleArray[0], 0.0, 1e-8) then
-        DebugLn('Mag is 0.0');
-      (FElement as TGdsSref).FMag := doubleArray[0];
+      (FElement as TGdsSref).FMag := ExtractReal8(ABytes)[0];
     end;
     htANGLE:
       (FElement as TGdsSref).FAngleDeg := ExtractReal8(ABytes)[0];
@@ -1133,8 +1132,7 @@ begin
   rad := Math.DegToRad(FAngleDeg);
   tx := AffineMatrixTranslation(Coords[0][0], Coords[0][1]);
   tx *= AffineMatrixScale(FMag, FMag);
-  tx *= AffineMatrix(cos(rad), -sin(rad), 0,
-                     sin(rad), cos(rad), 0);
+  tx *= AffineMatrix(cos(rad), -sin(rad), 0, sin(rad), cos(rad), 0);
   //  tx *= AffineMatrixRotationRad(Math.DegToRad(FAngleDeg));
   if IsRefrected then
   begin
@@ -1172,10 +1170,10 @@ begin
       Add(Format('ROWS: %d', [FRows]));
     if FCols >= 0 then
       Add(Format('COLS: %d', [FCols]));
-    if not Math.IsNaN(FColStep) then
-      Add(Format('COLSTEP: %6.4f', [FColStep]));
     if not Math.IsNaN(FRowStep) then
       Add(Format('ROWSTEP: %6.4f', [FRowStep]));
+    if not Math.IsNaN(FColStep) then
+      Add(Format('COLSTEP: %6.4f', [FColStep]));
   end;
 end;
 
@@ -1250,8 +1248,10 @@ begin
   theta := (alpha + beta + Pi) / 2.0;
   if Abs(Cos((alpha - beta) / 2.0)) < eps then
   begin
-    DebugLn('Internal algorithm error: cos((alpha - beta)/2) = 0');
-    Halt(1);
+    raise Exception.Create('Internal algorithm error: cos((alpha - beta)/2) = 0');
+    Result[0] := 0.0;
+    Result[1] := 0.0;
+    Exit(Result);
   end;
   r := hw / Cos((alpha - beta) / 2.0);
   Result[0] := r * Cos(theta);
