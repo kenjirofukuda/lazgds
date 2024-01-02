@@ -1,0 +1,24 @@
+#+title:  開発ノート
+#+author: kenjirofukuda@gmail.com
+#+date: 2024-01-02
+
+* 回転変換の修正 
+
+変換が意図した挙動を示さないため、BGRATransform の AffineMatrixRotationRadを調べてみたら
+-1 をかける位置が意図したものと異なっていいたのでハードコードした。
+
+#+begin_src opascal
+  function AffineMatrixRotationRad(AngleCCW: single): TAffineMatrix;
+  begin
+    Result := AffineMatrix(cos(AngleCCW), sin(AngleCCW), 0,
+                          -sin(AngleCCW), cos(AngleCCW), 0);
+  end;
+
+#+end_src
+
+
+#+begin_src opascal
+  Result := AffineMatrix(cos(AngleCCW), -sin(AngleCCW), 0,
+                         sin(AngleCCW),  cos(AngleCCW), 0);
+#+end_src
+
