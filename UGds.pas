@@ -461,7 +461,6 @@ begin
     for i := 0 to layerElementsMap.Count - 1 do
     begin
       layer := layerElementsMap.Keys[i];
-      DebugLn('Layer = %d', [layer]);
       layerList.Add(layer);
     end;
     layerList.Sort(@compInteger);
@@ -1004,9 +1003,24 @@ end;
 
 
 function TGdsPath.OutlineCoords: TCoords;
+var
+  debug: boolean;
+  target: TGdsElement;
 begin
+  debug := False;
   if FOutlineCoords = nil then
-    FOutlineCoords := pathOutlineCoords(Coords, PathType, Width);
+  begin
+    try
+      FOutlineCoords := pathOutlineCoords(Coords, PathType, Width);
+    except
+      on E: Exception do
+      begin
+        debug := True;
+        target := self;
+        DebugLn('Warning: Some exception occurred: ' + E.ClassName + ', message: ' + E.Message);
+      end;
+    end;
+  end;
   Result := FOutlineCoords;
 end;
 
@@ -1205,13 +1219,16 @@ begin
   end;
 end;
 
-
+// @see
 // https://gitlab.com/freepascal.org/fpc/source/-/issues/39861
+
 function BugFixedArcTan2(y, x: float): float;
+const
+  eps = 1e-8;
 begin
-  if (x = 0) then
+  if SameValue(x, 0.0, eps) then
   begin
-    if y = 0 then
+    if SameValue(y, 0, eps) then
       Result := 0.0
     else if y > 0 then
       Result := pi / 2
@@ -1241,11 +1258,13 @@ end;
 {$ENDIF}
 
 function getAngle(x1: double; y1: double; x2: double; y2: double): double;
+const
+  eps = 1e-8;
 var
   angle: double;
   direction: double;
 begin
-  if x1 = x2 then
+  if SameValue(x1, x2, eps) then
   begin
     if y2 > y1 then
       direction := 1
@@ -1256,7 +1275,7 @@ begin
   else
   begin
     {$ifdef WINDOWS}
-    angle := BugFixedArcTan3(abs(y2 - y1), abs(x2 - x1));
+    angle := BugFixedArcTan2(abs(y2 - y1), abs(x2 - x1));
     {$ELSE}
     angle := Math.ArcTan2(abs(y2 - y1), abs(x2 - x1));
     {$ENDIF}

@@ -132,6 +132,31 @@ function arctan2(y,x : float) : float;
           result:=ArcTan(y/x)+pi;
     end;                        //<---- 1: added "end"    
   end;  
-
 #+end_src
 提案された修正コードを用いても範囲例外は発生した。残念
+
+対象要素を見る限り、単なる左向きの水平線である。
+#+begin_src
+Self = TGdsPath( {TGdsPath}
+  private
+  FOUTLINECOORDS: nil;
+  FPATHTYPE: 0;
+  FWIDTH: 10;
+  {TGDSELEMENT}
+  private
+  FCOORDS: ((266.5, 289), (0, 289));
+  FLAYER: 22;
+  FDATATYPE: 0;
+  FEXTENTBOUNDS:   ( ORIGIN:     ( X: 0;       Y: 289);
+    CORNER:     ( X: 266.5;       Y: 289));
+  FEXTENTBOUNDSPTR: $0000000005FB3AA0^: ();
+  {TGDSOBJECT}
+  private
+  FPARENT: TGDSOBJECT($0000000005FAE800);
+  PARENT: TGDSOBJECT($0000000005FAE800);
+  {TOBJECT}
+  private
+  _vptr$TOBJECT: $000000010027AF78^: Error: Unknown data)
+  #+end_src
+あ、2頂点の単なる線分に対して3頂点の比較関数が呼ばれていることがそのもののバグであった。
+このインデックスオーバーを修正してこの問題は終了とする。
