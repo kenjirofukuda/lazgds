@@ -16,16 +16,28 @@ type
   { TGdsView }
 
   TGdsView = class(TWorldView)
-    constructor Create(AOwner: TComponent); override;
+  private
+    FDrawerMap: TDrawerMap;
+    FDrawMilliSeconds: Int64;
+    FSelectedDrawing: integer;
+    FViewMoveRatio: single;
   public
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure HandlePaint(Sender: TObject); override;
     procedure DrawElements(AElements: TGdsElements);
     procedure DrawStructure(AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
-  private
-    FDrawerMap: TDrawerMap;
-    FDrawMilliSeconds: Int64;
+    property SelectedDrawing: integer read FSelectedDrawing;
+    { View Navigation }
+    { TODO: move to TWorldView }
+    procedure ViewFit;
+    procedure ViewZoomDouble;
+    procedure ViewZoomHalf;
+    procedure ViewMoveUp;
+    procedure ViewMoveDown;
+    procedure ViewMoveRight;
+    procedure ViewMoveLeft;
   end;
 
   TGdsDrawer = class(TWorldDrawer)
@@ -89,11 +101,18 @@ end;
 
 
 procedure TElementDrawer.DoStrokeOn(ACanvas: TCanvas);
-var
-  savedColor: TColor;
 begin
 //  savedColor := ACanvas.Pen.Color;
-  ACanvas.Pen.Color := GdsStation.LayerToColor(Element.Layer);
+  if GdsView.SelectedDrawing > 0 then
+  begin
+    ACanvas.Pen.Color := clWhite;
+    ACanvas.Pen.Width := 2;
+  end
+  else
+  begin
+    ACanvas.Pen.Color := GdsStation.LayerToColor(Element.Layer);
+    ACanvas.Pen.Width := 1;
+  end;
   StrokeOn(ACanvas);
 //  ACanvas.Pen.Color := savedColor;
 end;
@@ -171,6 +190,7 @@ begin
   FDrawerMap['TGdsSref'] := TSrefDrawer.Create(FViewport);
   FDrawerMap['TGdsAref'] := TArefDrawer.Create(FViewport);
   FDrawMilliSeconds := -1;
+  FViewMoveRatio := 0.25;
 end;
 
 
@@ -184,6 +204,51 @@ end;
 function TGdsView.GdsDrawer: TGdsDrawer; inline;
 begin
   Result := (WorldDrawer as TGdsDrawer);
+end;
+
+procedure TGdsView.ViewFit;
+begin
+  if Assigned(GdsStation.GdsStructure) then
+  begin
+     ViewPort.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
+     Invalidate;
+  end;
+end;
+
+procedure TGdsView.ViewZoomDouble;
+begin
+  Viewport.SetWorldScale(ViewPort.WorldScale * 2.0);
+  Invalidate;
+end;
+
+procedure TGdsView.ViewZoomHalf;
+begin
+  Viewport.SetWorldScale(ViewPort.WorldScale * 0.5);
+  Invalidate;
+end;
+
+procedure TGdsView.ViewMoveUp;
+begin
+  ViewPort.ViewMoveFraction(0.0, FViewMoveRatio);
+  Invalidate;
+end;
+
+procedure TGdsView.ViewMoveDown;
+begin
+  ViewPort.ViewMoveFraction(0.0, -FViewMoveRatio);
+  Invalidate;
+end;
+
+procedure TGdsView.ViewMoveRight;
+begin
+  ViewPort.ViewMoveFraction(FViewMoveRatio, 0.0);
+  Invalidate;
+end;
+
+procedure TGdsView.ViewMoveLeft;
+begin
+  ViewPort.ViewMoveFraction(-FViewMoveRatio, 0.0);
+  Invalidate;
 end;
 
 
@@ -223,7 +288,6 @@ var
     colors := nil;
   end;
 
-
   procedure DrawDebugInfo;
   var
     stringList: TStringList;
@@ -254,30 +318,17 @@ var
   end;
 
 begin
-
   Canvas.Brush.Color := clBlack;
   Canvas.Clear;
-
   if GdsStation.GdsStructure = nil then
   begin
     DrawColors;
     Exit;
   end;
-
+  FSelectedDrawing := 0;
   startTime := Time;
   DrawStructure(GdsStation.GdsStructure);
   endTime := Time;
-
-  if Assigned(GdsStation.GdsElement) then
-  begin
-    E := GdsStation.GdsElement;
-    GD := FDrawerMap[E.ClassName];
-    GD.Element := E;
-    Canvas.Pen.Color := clWhite;
-    Canvas.Pen.Width := 2;
-    GD.StrokeOn(Canvas);
-    Canvas.Pen.Width := 1;
-  end;
   FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
   DrawDebugInfo;
 end;
@@ -294,6 +345,16 @@ begin
     GD.Element := E;
     GD.GdsView := self;
     GD.DrawOn(Canvas);
+  end;
+  if (Assigned(GdsStation.GdsElement)) and (ViewPort.PushedTransformCount = 0) then
+  begin
+    E := GdsStation.GdsElement;
+    Inc(FSelectedDrawing);
+    GD := FDrawerMap[E.ClassName];
+    GD.Element := E;
+    GD.GdsView := self;
+    GD.DrawOn(Canvas);
+    Dec(FSelectedDrawing);
   end;
 end;
 
