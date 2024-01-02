@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="12"/>
-    <PathDelim Value="\"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
       <Title Value="GdsFeel"/>
@@ -113,6 +112,12 @@
       </Item>
       <Item>
         <Name Value="Exception"/>
+      </Item>
+      <Item>
+        <Name Value="ERangeError"/>
+      </Item>
+      <Item>
+        <Name Value="RunError(201)"/>
       </Item>
     </Exceptions>
   </Debugging>

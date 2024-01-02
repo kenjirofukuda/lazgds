@@ -16,8 +16,8 @@ uses
 
 begin
   RequireDerivedFormResource := True;
-  Application.Title:='GdsFeel';
-  Application.Scaled:=True;
+  Application.Title := 'GdsFeel';
+  Application.Scaled := True;
   Application.Initialize;
   Application.CreateForm(TGdsBrowserForm, GdsBrowserForm);
   Application.Run;

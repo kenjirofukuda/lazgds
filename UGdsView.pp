@@ -254,10 +254,6 @@ end;
 
 procedure TGdsView.HandlePaint(Sender: TObject);
 var
-  E: TGdsElement;
-  DP: TPointF;
-  i: integer;
-  GD: TElementDrawer;
   textY: integer;
   textHeight: integer;
   startTime, endTime: TDateTime;

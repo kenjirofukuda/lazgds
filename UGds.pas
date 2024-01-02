@@ -1206,6 +1206,40 @@ begin
 end;
 
 
+// https://gitlab.com/freepascal.org/fpc/source/-/issues/39861
+function BugFixedArcTan2(y, x: float): float;
+begin
+  if (x = 0) then
+  begin
+    if y = 0 then
+      Result := 0.0
+    else if y > 0 then
+      Result := pi / 2
+    else
+      Result := -pi / 2;
+  end
+  else
+  begin
+    if X > 0 then
+      Result := ArcTan(y / x)
+    else
+    if Y < 0.0 then
+      Result := ArcTan(y / x) - pi
+    else
+      Result := ArcTan(y / x) + pi;
+  end;
+end;
+
+{$ifndef WINDOWS}
+function BugFixedArcTan3(y, x: float): float; assembler;
+asm
+         FLDT    y
+         FLDT    x
+         FPATAN
+         FWAIT
+end;
+{$ENDIF}
+
 function getAngle(x1: double; y1: double; x2: double; y2: double): double;
 var
   angle: double;
@@ -1221,7 +1255,12 @@ begin
   end
   else
   begin
+    {$ifdef WINDOWS}
+    angle := BugFixedArcTan3(abs(y2 - y1), abs(x2 - x1));
+    {$ELSE}
     angle := Math.ArcTan2(abs(y2 - y1), abs(x2 - x1));
+    {$ENDIF}
+
     if y2 >= y1 then
       if x2 >= x1 then
         angle := angle + 0.0

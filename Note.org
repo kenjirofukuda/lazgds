@@ -1,3 +1,6 @@
+
+
+
 #+title:  開発ノート
 #+author: kenjirofukuda@gmail.com
 #+date: 2024-01-02
@@ -57,3 +60,78 @@ GNUstep 版は 280 ms から 300 ms である。
 
 やっと、GNUstep 版を追い越した。
 
+* Windows 64bit で実行するとArcTan2でオーバーフロー例外を起こす。
+
+https://forum.lazarus.freepascal.org/index.php?topic=60180.45
+の記事をきっかけに
+https://gitlab.com/freepascal.org/fpc/source/-/issues/39861
+に至った。
+
+LinuxのArcTan2を追跡すると
+#+begin_src opascal
+{$ifdef FPC_HAS_TYPE_EXTENDED}
+{$define FPC_MATH_HAS_ARCTAN2}
+function arctan2(y,x : float) : float;assembler;
+  asm
+     fldt y
+     fldt x
+     fpatan
+     fwait
+  end;
+#+end_Src
+に行き当たる。
+これは、FPC _ HAS _ TYPE _ EXTENDED  が有効なため
+ダイレクトに、アセンブラコールされている。
+
+Windows のArcTan2 を追跡するとフォーラムにあったバグ含みのコードに行き当たる。
+#+begin_src opascal
+{$ifndef FPC_MATH_HAS_ARCTAN2}
+function arctan2(y,x : float) : float;
+  begin
+    if (x=0) then
+      begin
+        if y=0 then
+          arctan2:=0.0
+        else if y>0 then
+          arctan2:=pi/2
+        else if y<0 then
+          arctan2:=-pi/2;
+      end
+    else
+      ArcTan2:=ArcTan(y/x);
+    if x<0.0 then
+      ArcTan2:=ArcTan2+pi;
+    if ArcTan2>pi then
+      ArcTan2:=ArcTan2-2*pi;
+  end;
+{$endif FPC_MATH_HAS_ARCTAN2}
+#+end_src
+
+最新バージョンをインストールしているのに、バグ修正が反映されていないのはなぜなのかは不明
+
+ちなみに、修正されたコードは次のようになる。
+#+begin_src opascal
+function arctan2(y,x : float) : float;
+  begin
+    if (x=0) then
+      begin
+        if y=0 then
+          result:=0.0
+        else if y>0 then
+          result:=pi/2
+        else                 //<--- 2: removed last if check
+          result:=-pi/2;
+      end
+    else begin                    //<--- 1:added "begin"
+      if X > 0 then               //<--- 3: rewritten avoding unecessary sum+subtract
+        result:=ArcTan(y/x)
+      else
+        if Y < 0.0 then
+          result:=ArcTan(y/x)-pi
+        else          
+          result:=ArcTan(y/x)+pi;
+    end;                        //<---- 1: added "end"    
+  end;  
+
+#+end_src
+提案された修正コードを用いても範囲例外は発生した。残念
