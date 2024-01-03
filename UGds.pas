@@ -1234,7 +1234,7 @@ begin
   if SameValue(x, 0.0, Gds_EPS) then
   begin
     if SameValue(y, 0, Gds_EPS) then
-q      Result := 0.0
+      Result := 0.0
     else if y > 0 then
       Result := pi / 2
     else

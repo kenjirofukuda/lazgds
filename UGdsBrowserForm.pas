@@ -65,7 +65,7 @@ var
   lastOpendPath: string;
 begin
   lastOpendPath := JSONPropStorage.ReadString(GDS_PATH_KEY, '');
-  if path <> '' then
+  if lastOpendPath <> '' then
   begin
     OpenGdsDialog.InitialDir := ExtractFileDir(lastOpendPath);
   end;

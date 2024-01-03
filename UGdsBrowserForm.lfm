@@ -23,7 +23,7 @@ object GdsBrowserForm: TGdsBrowserForm
   object BrowserPanel: TPanel
     AnchorSideTop.Control = GdsFileNameLabel
     Left = 0
-    Height = 856
+    Height = 851
     Top = 19
     Width = 1266
     Align = alClient
@@ -31,7 +31,7 @@ object GdsBrowserForm: TGdsBrowserForm
     ChildSizing.EnlargeVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 3
-    ClientHeight = 856
+    ClientHeight = 851
     ClientWidth = 1266
     Color = clFuchsia
     ParentBackground = False
@@ -41,7 +41,7 @@ object GdsBrowserForm: TGdsBrowserForm
       AnchorSideBottom.Control = BrowserPanel
       AnchorSideBottom.Side = asrBottom
       Left = 0
-      Height = 855
+      Height = 850
       Top = 0
       Width = 180
       Anchors = [akTop, akLeft, akBottom]
@@ -50,7 +50,6 @@ object GdsBrowserForm: TGdsBrowserForm
       Constraints.MinWidth = 100
       ItemHeight = 0
       TabOrder = 0
-      TopIndex = -1
       OnSelectionChange = StructureListBoxSelectionChange
     end
     object XYListView: TListView
@@ -60,7 +59,7 @@ object GdsBrowserForm: TGdsBrowserForm
       AnchorSideBottom.Control = BrowserPanel
       AnchorSideBottom.Side = asrBottom
       Left = 360
-      Height = 855
+      Height = 850
       Top = 0
       Width = 200
       Anchors = [akTop, akLeft, akBottom]
@@ -82,7 +81,7 @@ object GdsBrowserForm: TGdsBrowserForm
           Caption = 'Y'
           MaxWidth = 80
           MinWidth = 80
-          Width = 95
+          Width = 80
         end>
       Constraints.MaxWidth = 200
       Constraints.MinWidth = 100
@@ -99,7 +98,7 @@ object GdsBrowserForm: TGdsBrowserForm
       AnchorSideBottom.Control = BrowserPanel
       AnchorSideBottom.Side = asrBottom
       Left = 180
-      Height = 855
+      Height = 850
       Top = 0
       Width = 180
       Anchors = [akTop, akLeft, akBottom]
@@ -108,14 +107,13 @@ object GdsBrowserForm: TGdsBrowserForm
       Constraints.MinWidth = 100
       ItemHeight = 0
       TabOrder = 2
-      TopIndex = -1
       OnSelectionChange = ElementListBoxSelectionChange
     end
   end
   object StatusBar: TStatusBar
     Left = 0
-    Height = 19
-    Top = 875
+    Height = 24
+    Top = 870
     Width = 1266
     Panels = <>
   end
