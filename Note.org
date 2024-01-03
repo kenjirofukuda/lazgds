@@ -5,28 +5,7 @@
 #+author: kenjirofukuda@gmail.com
 #+date: 2024-01-02
 
-* 回転変換の修正 
-
-変換が意図した挙動を示さないため、BGRATransform の AffineMatrixRotationRadを調べてみたら
--1 をかける位置が意図したものと異なっていいたのでハードコードした。
-
-#+begin_src opascal
-  function AffineMatrixRotationRad(AngleCCW: single): TAffineMatrix;
-  begin
-    Result := AffineMatrix(cos(AngleCCW), sin(AngleCCW), 0,
-                          -sin(AngleCCW), cos(AngleCCW), 0);
-  end;
-
-#+end_src
-
-
-#+begin_src opascal
-  Result := AffineMatrix(cos(AngleCCW), -sin(AngleCCW), 0,
-                         sin(AngleCCW),  cos(AngleCCW), 0);
-#+end_src
-
-
-* キーナビゲーション
+* TODO キーナビゲーション
 GNUstep バージョンでは以下の割当を行い、なんの問題もなく実現している。
 NSView 配下なら NSResponder 配下なのでイベントにフックをかけるのは造作もない。
 +-------+-----------------+
@@ -50,17 +29,41 @@ NSView 配下なら NSResponder 配下なのでイベントにフックをかけ
 解決のヒントになると思われるサイトが以下である。
 https://www.petitmonte.com/bbs/answers?question_id=1503
 
-* 描画時間の削減
+* TODO 描画時間の削減
 一番巨大なBandgap の描画に時間がかかりすぎている。
 GNUstep 版は 280 ms から 300 ms である。
-
+** TODO 長期的な削減
+オフスクリーン描画の実装
+** DONE 単純な削減
 | 初回測定                | 800 ms         |
 | 描画周りのDebugLn 削除   | 400 ms         |
 | PenのSave Restore 廃止 | 227 から 240 ms |
-
 やっと、GNUstep 版を追い越した。
+* DONE ファイル開設ダイアログにて、最後に開いたディレクトリに誘導
+Windwosは開設ダイアログが最後にアクセスした場所を覚えているが Linux(gtk2) ではこの挙動を期待できない。よって最後に保存した場所を記録しておき、アプリケーションセッション開始時にこれを復元する。
 
-* Windows 64bit で実行するとArcTan2でオーバーフロー例外を起こす。
+TJSOPNPropStorageを用いて、比較的かんたんに解決することができた。
+* DONE 回転変換の修正 
+
+変換が意図した挙動を示さないため、BGRATransform の AffineMatrixRotationRadを調べてみたら
+-1 をかける位置が意図したものと異なっていいたのでハードコードした。
+
+#+begin_src opascal
+  function AffineMatrixRotationRad(AngleCCW: single): TAffineMatrix;
+  begin
+    Result := AffineMatrix(cos(AngleCCW), sin(AngleCCW), 0,
+                          -sin(AngleCCW), cos(AngleCCW), 0);
+  end;
+
+#+end_src
+
+
+#+begin_src opascal
+  Result := AffineMatrix(cos(AngleCCW), -sin(AngleCCW), 0,
+                         sin(AngleCCW),  cos(AngleCCW), 0);
+#+end_src
+
+* DONE Windows 64bit で実行するとArcTan2でオーバーフロー例外を起こす。
 
 https://forum.lazarus.freepascal.org/index.php?topic=60180.45
 の記事をきっかけに
@@ -159,4 +162,26 @@ Self = TGdsPath( {TGdsPath}
   _vptr$TOBJECT: $000000010027AF78^: Error: Unknown data)
   #+end_src
 あ、2頂点の単なる線分に対して3頂点の比較関数が呼ばれていることがそのもののバグであった。
+
+修正前
+#+begin_src opascal
+for i := 1 to numPoints do     
+#+end_src
+修正後
+#+begin_src opascal
+for i := 1 to numPoints - 1 do     
+#+end_src
+
+また、実数値の比較を
+#+begin_src opascal
+(x = 0)
+#+end_src
+#+begin_src opascal
+const
+  eps = 1e-8;
+SameValue(x, 0.0, eps)
+#+end_src
+などではなく
+等で統一
 このインデックスオーバーを修正してこの問題は終了とする。
+

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  Menus, ExtCtrls, UGds, UGdsView, UGdsStation;
+  Menus, ExtCtrls, JSONPropStorage, UGds, UGdsView, UGdsStation;
 
 type
 
@@ -15,6 +15,7 @@ type
   TGdsBrowserForm = class(TForm)
     BrowserPanel: TPanel;
     ElementListBox: TListBox;
+    JSONPropStorage: TJSONPropStorage;
     MainMenu: TMainMenu;
     FileMenu: TMenuItem;
     GdsFileNameLabel: TLabel;
@@ -34,15 +35,13 @@ type
     procedure FormDestroy(Sender: TObject);
 
     procedure HandleBytes(const ABytes: TBytes; Sender: TGdsInform);
-    procedure StructureListBoxSelectionChange(Sender: TObject; User: Boolean);
-    procedure ElementListBoxSelectionChange(Sender: TObject; User: Boolean);
+    procedure StructureListBoxSelectionChange(Sender: TObject; User: boolean);
+    procedure ElementListBoxSelectionChange(Sender: TObject; User: boolean);
 
   private
     FGdsInform: TGdsInform;
     FGdsView: TGdsView;
-
   public
-
   end;
 
 
@@ -54,16 +53,27 @@ implementation
 {$R *.lfm}
 
 uses
-  LazLogger;
+  LazLogger, LazUtils;
 
-{ TGdsBrowserForm }
+  { TGdsBrowserForm }
 
 procedure TGdsBrowserForm.OpenGdsFile(Sender: TObject);
+const
+  GDS_PATH_KEY = 'LastOpendGdsFilePath';
 var
   structure: TGdsStructure;
+  lastOpendPath: string;
 begin
+  lastOpendPath := JSONPropStorage.ReadString(GDS_PATH_KEY, '');
+  if path <> '' then
+  begin
+    OpenGdsDialog.InitialDir := ExtractFileDir(lastOpendPath);
+  end;
   if OpenGdsDialog.Execute then
-    GdsFileNameLabel.Caption := OpenGdsDialog.FileName
+  begin
+    GdsFileNameLabel.Caption := OpenGdsDialog.FileName;
+    JSONPropStorage.WriteString(GDS_PATH_KEY, OpenGdsDialog.FileName);
+  end
   else
     Exit;
   if not FileExists(OpenGdsDialog.FileName) then
@@ -80,7 +90,7 @@ begin
   begin
     StructureListBox.AddItem(structure.Name, structure);
   end;
-  Caption := FGdsInform.GdsLibrary.Name;
+  Caption := Application.Name + ': ' + GdsStation.GdsLibrary.Name;
 end;
 
 
@@ -90,11 +100,22 @@ begin
 end;
 
 
+function ConfigFilePath: string;
+var
+  path: string;
+begin
+  path := GetAppConfigFile(False, True);
+  ForceDirectories(ExtractFileDir(path));
+  Result := path;
+end;
+
+
 procedure TGdsBrowserForm.FormCreate(Sender: TObject);
 begin
   FGdsInform := TGdsInform.Create;
   FGdsInform.OnBytes := @HandleBytes;
   FGdsView := TGdsView.Create(BrowserPanel);
+  JSONPropStorage.JSONFileName := ConfigFilePath;
   with FGdsView do
   begin
     AnchorSideLeft.Control := XYListView;
@@ -130,9 +151,9 @@ end;
 
 
 procedure TGdsBrowserForm.StructureListBoxSelectionChange(Sender: TObject;
-  User: Boolean);
+  User: boolean);
 var
-  i: Integer;
+  i: integer;
   S: TGdsStructure;
   E: TGdsElement;
 begin
@@ -153,9 +174,9 @@ begin
 end;
 
 
-procedure TGdsBrowserForm.ElementListBoxSelectionChange(Sender: TObject; User: Boolean);
+procedure TGdsBrowserForm.ElementListBoxSelectionChange(Sender: TObject; User: boolean);
 var
-  i: Integer;
+  i: integer;
   E: TGdsElement;
   AXY: TXY;
 begin
@@ -174,6 +195,6 @@ begin
       SubItems.Add(AXY[1].ToString);
     end;
   end;
- end;
+end;
 
 end.

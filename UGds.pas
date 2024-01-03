@@ -9,6 +9,9 @@ uses
   Classes, SysUtils, Types, fgl, BGRATransform, UGeometryUtils;
 
 const
+  Gds_EPS = 1e-8;
+
+const
   dtNODATA = $00;
   dtBITS16 = $01;
   dtINT2 = $02;
@@ -1219,17 +1222,19 @@ begin
   end;
 end;
 
-// @see
-// https://gitlab.com/freepascal.org/fpc/source/-/issues/39861
 
+{
+  @see
+  https://gitlab.com/freepascal.org/fpc/source/-/issues/39861
+  modify value equality check from = to SavmeValue
+}
+{$ifdef WINDOWS}
 function BugFixedArcTan2(y, x: float): float;
-const
-  eps = 1e-8;
 begin
-  if SameValue(x, 0.0, eps) then
+  if SameValue(x, 0.0, Gds_EPS) then
   begin
-    if SameValue(y, 0, eps) then
-      Result := 0.0
+    if SameValue(y, 0, Gds_EPS) then
+q      Result := 0.0
     else if y > 0 then
       Result := pi / 2
     else
@@ -1246,25 +1251,16 @@ begin
       Result := ArcTan(y / x) + pi;
   end;
 end;
-
-{$ifndef WINDOWS}
-function BugFixedArcTan3(y, x: float): float; assembler;
-asm
-         FLDT    y
-         FLDT    x
-         FPATAN
-         FWAIT
-end;
 {$ENDIF}
 
+
+
 function getAngle(x1: double; y1: double; x2: double; y2: double): double;
-const
-  eps = 1e-8;
 var
   angle: double;
   direction: double;
 begin
-  if SameValue(x1, x2, eps) then
+  if SameValue(x1, x2, Gds_EPS) then
   begin
     if y2 > y1 then
       direction := 1
@@ -1296,15 +1292,13 @@ end;
 
 
 function getDeltaXY(hw: double; p1: TXY; p2: TXY; p3: TXY): TXY;
-const
-  eps = 1e-8;
 var
   alpha, beta, theta, r: double;
 begin
   alpha := getAngle(p1[0], p1[1], p2[0], p2[1]);
   beta := getAngle(p2[0], p2[1], p3[0], p3[1]);
   theta := (alpha + beta + Pi) / 2.0;
-  if Abs(Cos((alpha - beta) / 2.0)) < eps then
+  if Abs(Cos((alpha - beta) / 2.0)) < Gds_EPS then
   begin
     raise Exception.Create('Internal algorithm error: cos((alpha - beta)/2) = 0');
     Result[0] := 0.0;
@@ -1366,7 +1360,7 @@ begin
     points[2 * numPoints - 1][1] := ACoords[0][1] - deltaxy[1] - deltaxy[0];
   end;
 
-  for i := 1 to numPoints do
+  for i := 1 to numPoints - 1 do
   begin
     deltaxy := getDeltaXY(hw, ACoords[i - 1], ACoords[i], ACoords[i + 1]);
     points[i][0] := ACoords[i][0] + deltaxy[0];

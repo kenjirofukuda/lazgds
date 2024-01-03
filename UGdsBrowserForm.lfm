@@ -143,4 +143,10 @@ object GdsBrowserForm: TGdsBrowserForm
       end
     end
   end
+  object JSONPropStorage: TJSONPropStorage
+    StoredValues = <>
+    Formatted = False
+    Left = 288
+    Top = 64
+  end
 end
