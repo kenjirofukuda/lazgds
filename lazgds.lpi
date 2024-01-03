@@ -76,6 +76,12 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="UColorUtils"/>
       </Unit>
+      <Unit>
+        <Filename Value="USandboxForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -1,7 +1,7 @@
 object GdsBrowserForm: TGdsBrowserForm
-  Left = 248
+  Left = 332
   Height = 894
-  Top = 831
+  Top = 721
   Width = 1266
   Caption = 'GdsFeel'
   ClientHeight = 894
@@ -20,8 +20,11 @@ object GdsBrowserForm: TGdsBrowserForm
     AutoSize = False
     ParentColor = False
   end
-  object BrowserPanel: TPanel
+  object ContentsPanel: TPanel
     AnchorSideTop.Control = GdsFileNameLabel
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = StatusBar
+    AnchorSideBottom.Side = asrBottom
     Left = 0
     Height = 851
     Top = 19
@@ -37,77 +40,109 @@ object GdsBrowserForm: TGdsBrowserForm
     ParentBackground = False
     ParentColor = False
     TabOrder = 0
-    object StructureListBox: TListBox
-      AnchorSideBottom.Control = BrowserPanel
-      AnchorSideBottom.Side = asrBottom
+    object PairSplitter: TPairSplitter
       Left = 0
-      Height = 850
+      Height = 851
       Top = 0
-      Width = 180
-      Anchors = [akTop, akLeft, akBottom]
-      Color = clMaroon
-      Constraints.MaxWidth = 200
-      Constraints.MinWidth = 100
-      ItemHeight = 0
-      TabOrder = 0
-      OnSelectionChange = StructureListBoxSelectionChange
-    end
-    object XYListView: TListView
-      AnchorSideLeft.Control = ElementListBox
-      AnchorSideLeft.Side = asrBottom
-      AnchorSideRight.Side = asrBottom
-      AnchorSideBottom.Control = BrowserPanel
-      AnchorSideBottom.Side = asrBottom
-      Left = 360
-      Height = 850
-      Top = 0
-      Width = 200
-      Anchors = [akTop, akLeft, akBottom]
-      AutoSort = False
-      Color = clOlive
-      Columns = <      
-        item
-          Width = 10
-        end      
-        item
-          Alignment = taRightJustify
-          Caption = 'X'
-          MaxWidth = 80
-          MinWidth = 80
-          Width = 80
-        end      
-        item
-          Alignment = taRightJustify
-          Caption = 'Y'
-          MaxWidth = 80
-          MinWidth = 80
-          Width = 80
-        end>
-      Constraints.MaxWidth = 200
-      Constraints.MinWidth = 100
-      GridLines = True
-      ReadOnly = True
-      RowSelect = True
-      TabOrder = 1
-      Visible = False
-      ViewStyle = vsReport
-    end
-    object ElementListBox: TListBox
-      AnchorSideLeft.Control = StructureListBox
-      AnchorSideLeft.Side = asrBottom
-      AnchorSideBottom.Control = BrowserPanel
-      AnchorSideBottom.Side = asrBottom
-      Left = 180
-      Height = 850
-      Top = 0
-      Width = 180
-      Anchors = [akTop, akLeft, akBottom]
-      Color = clGreen
-      Constraints.MaxWidth = 200
-      Constraints.MinWidth = 100
-      ItemHeight = 0
-      TabOrder = 2
-      OnSelectionChange = ElementListBoxSelectionChange
+      Width = 1266
+      Color = clAqua
+      Position = 160
+      object PairSplitterSideLists: TPairSplitterSide
+        AnchorSideRight.Control = PairSplitterSideCanvas
+        Cursor = crArrow
+        Left = 0
+        Height = 851
+        Top = 0
+        Width = 160
+        ChildSizing.EnlargeHorizontal = crsScaleChilds
+        ChildSizing.EnlargeVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 3
+        ClientWidth = 160
+        ClientHeight = 851
+        Constraints.MaxWidth = 240
+        object StructureListBox: TListBox
+          AnchorSideBottom.Side = asrBottom
+          Left = 0
+          Height = 851
+          Top = 0
+          Width = 100
+          Color = clMaroon
+          Constraints.MinWidth = 50
+          ItemHeight = 0
+          TabOrder = 0
+          OnSelectionChange = StructureListBoxSelectionChange
+        end
+        object XYListView: TListView
+          AnchorSideRight.Side = asrBottom
+          AnchorSideBottom.Side = asrBottom
+          Left = 100
+          Height = 851
+          Top = 0
+          Width = 250
+          AutoSort = False
+          Color = clOlive
+          Columns = <          
+            item
+              Width = 10
+            end          
+            item
+              Alignment = taRightJustify
+              Caption = 'X'
+              MaxWidth = 80
+              MinWidth = 80
+              Width = 80
+            end          
+            item
+              Alignment = taRightJustify
+              Caption = 'Y'
+              MaxWidth = 80
+              MinWidth = 80
+              Width = 80
+            end>
+          Constraints.MinWidth = 50
+          GridLines = True
+          ReadOnly = True
+          RowSelect = True
+          TabOrder = 1
+          Visible = False
+          ViewStyle = vsReport
+        end
+        object ElementListBox: TListBox
+          AnchorSideBottom.Side = asrBottom
+          Left = 350
+          Height = 851
+          Top = 0
+          Width = 100
+          Color = clGreen
+          Constraints.MinWidth = 50
+          ItemHeight = 0
+          TabOrder = 2
+          OnSelectionChange = ElementListBoxSelectionChange
+        end
+      end
+      object PairSplitterSideCanvas: TPairSplitterSide
+        Cursor = crArrow
+        Left = 165
+        Height = 851
+        Top = 0
+        Width = 1101
+        ClientWidth = 1101
+        ClientHeight = 851
+        object DummyPaintBox: TPaintBox
+          AnchorSideLeft.Control = PairSplitterSideCanvas
+          AnchorSideTop.Control = PairSplitterSideCanvas
+          AnchorSideRight.Control = PairSplitterSideCanvas
+          AnchorSideRight.Side = asrBottom
+          AnchorSideBottom.Control = PairSplitterSideCanvas
+          AnchorSideBottom.Side = asrBottom
+          Left = 0
+          Height = 851
+          Top = 0
+          Width = 1101
+          Anchors = [akTop, akLeft, akRight, akBottom]
+        end
+      end
     end
   end
   object StatusBar: TStatusBar
@@ -138,6 +173,13 @@ object GdsBrowserForm: TGdsBrowserForm
         Caption = 'Quit'
         ShortCut = 16465
         OnClick = QuitMenuItemClick
+      end
+    end
+    object DebugMenu: TMenuItem
+      Caption = 'Debug'
+      object OpenSandboxMenuItem: TMenuItem
+        Caption = 'Open Sandbox'
+        OnClick = OpenSandboxMenuItemClick
       end
     end
   end

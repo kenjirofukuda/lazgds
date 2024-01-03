@@ -10,7 +10,7 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, UGdsBrowserForm, UGdsView, UGdsStation;
+  Forms, UGdsBrowserForm, UGdsView, UGdsStation, USandboxForm;
 
 {$R *.res}
 
@@ -20,6 +20,7 @@ begin
   Application.Scaled := True;
   Application.Initialize;
   Application.CreateForm(TGdsBrowserForm, GdsBrowserForm);
+  Application.CreateForm(TForm1, Form1);
   Application.Run;
 end.
 

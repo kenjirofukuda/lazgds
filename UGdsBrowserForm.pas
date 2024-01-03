@@ -6,20 +6,26 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  Menus, ExtCtrls, JSONPropStorage, UGds, UGdsView, UGdsStation;
+  Menus, ExtCtrls, JSONPropStorage, PairSplitter, UGds, UGdsView, UGdsStation;
 
 type
 
   { TGdsBrowserForm }
 
   TGdsBrowserForm = class(TForm)
-    BrowserPanel: TPanel;
+    ContentsPanel: TPanel;
     ElementListBox: TListBox;
     JSONPropStorage: TJSONPropStorage;
     MainMenu: TMainMenu;
     FileMenu: TMenuItem;
     GdsFileNameLabel: TLabel;
+    DebugMenu: TMenuItem;
+    OpenSandboxMenuItem: TMenuItem;
     OpenGdsDialog: TOpenDialog;
+    DummyPaintBox: TPaintBox;
+    PairSplitter: TPairSplitter;
+    PairSplitterSideLists: TPairSplitterSide;
+    PairSplitterSideCanvas: TPairSplitterSide;
     StatusBar: TStatusBar;
     StructureListBox: TListBox;
     XYListView: TListView;
@@ -28,6 +34,7 @@ type
     Separator1: TMenuItem;
     QuitMenuItem: TMenuItem;
 
+    procedure OpenSandboxMenuItemClick(Sender: TObject);
     procedure QuitMenuItemClick(Sender: TObject);
     procedure OpenGdsFile(Sender: TObject);
 
@@ -53,7 +60,7 @@ implementation
 {$R *.lfm}
 
 uses
-  LazLogger, LazUtils;
+  LazLogger, LazUtils, USandboxForm;
 
   { TGdsBrowserForm }
 
@@ -90,13 +97,19 @@ begin
   begin
     StructureListBox.AddItem(structure.Name, structure);
   end;
-  Caption := Application.Name + ': ' + GdsStation.GdsLibrary.Name;
+  Caption := Application.Title + ': ' + GdsStation.GdsLibrary.Name;
 end;
 
 
 procedure TGdsBrowserForm.QuitMenuItemClick(Sender: TObject);
 begin
   GdsBrowserForm.Close;
+end;
+
+
+procedure TGdsBrowserForm.OpenSandboxMenuItemClick(Sender: TObject);
+begin
+  Form1.Visible := True;
 end;
 
 
@@ -114,16 +127,15 @@ procedure TGdsBrowserForm.FormCreate(Sender: TObject);
 begin
   FGdsInform := TGdsInform.Create;
   FGdsInform.OnBytes := @HandleBytes;
-  FGdsView := TGdsView.Create(BrowserPanel);
+  FGdsView := TGdsView.Create(ContentsPanel);
   JSONPropStorage.JSONFileName := ConfigFilePath;
   with FGdsView do
   begin
-    AnchorSideLeft.Control := XYListView;
-    AnchorSideLeft.Side := asrBottom;
-    AnchorSideTop.Control := BrowserPanel;
-    AnchorSideRight.Control := BrowserPanel;
+    AnchorSideLeft.Control := PairSplitterSideCanvas;
+    AnchorSideTop.Control := PairSplitterSideCanvas;
+    AnchorSideRight.Control := PairSplitterSideCanvas;
     AnchorSideRight.Side := asrBottom;
-    AnchorSideBottom.Control := BrowserPanel;
+    AnchorSideBottom.Control := PairSplitterSideCanvas;
     AnchorSideBottom.Side := asrBottom;
     Anchors := [akTop, akLeft, akRight, akBottom];
     Caption := 'GdsView';
@@ -131,8 +143,13 @@ begin
     ParentColor := False;
     Color := clYellow;
     Visible := True;
-    Parent := BrowserPanel;
+    Parent := PairSplitterSideCanvas;
   end;
+  DummyPaintBox.Visible := False;
+  {kill design layout color}
+  StructureListBox.Color := clDefault;
+  ElementListBox.Color := clDefault;
+  XYListView.Color := clDefault;
 end;
 
 
