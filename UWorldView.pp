@@ -37,7 +37,7 @@ type
   end;
 
 
-  TWorldView = class(TPaintBox)
+  TWorldView = class(TPanel)
     constructor Create(AOwner: TComponent); override;
 
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState;

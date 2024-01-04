@@ -20,7 +20,7 @@ begin
   Application.Scaled := True;
   Application.Initialize;
   Application.CreateForm(TGdsBrowserForm, GdsBrowserForm);
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TSandboxForm, SandboxForm);
   Application.Run;
 end.
 

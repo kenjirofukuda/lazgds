@@ -29,6 +29,9 @@ type
     procedure DrawStructure(AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
     property SelectedDrawing: integer read FSelectedDrawing;
+
+    procedure HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
+
     { View Navigation }
     { TODO: move to TWorldView }
     procedure ViewFit;
@@ -88,7 +91,7 @@ type
 implementation
 
 uses
-  Types, DateUtils, LazLogger,
+  Types, LCLType, DateUtils, LazLogger,
   UGdsStation, UGeometryUtils, UColorUtils;
 
 
@@ -181,6 +184,9 @@ end;
 constructor TGdsView.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  TabStop := True;
+  TabOrder := 2;
+  OnKeyUp := @HandleKeyUp;
   WorldDrawer := TGdsDrawer.Create(FViewport);
   FDrawerMap := TDrawerMap.Create;
   FDrawerMap['TGdsBoundary'] := TBoundaryDrawer.Create(FViewport);
@@ -204,6 +210,41 @@ end;
 function TGdsView.GdsDrawer: TGdsDrawer; inline;
 begin
   Result := (WorldDrawer as TGdsDrawer);
+end;
+
+procedure TGdsView.HandleKeyUp(Sender: TObject; var Key: word;
+  Shift: TShiftState);
+begin
+  case Key of
+  VK_LEFT, VK_NUMPAD4:
+    begin
+      ViewMoveLeft;
+    end;
+  VK_RIGHT, VK_NUMPAD6:
+    begin
+      ViewMoveRight;
+    end;
+  VK_UP, VK_NUMPAD8:
+    begin
+      ViewMoveUp;
+    end;
+  VK_DOWN, VK_NUMPAD2:
+    begin
+      ViewMoveDown;
+    end;
+  VK_PRIOR, VK_ADD:
+    begin
+      ViewZoomDouble;
+    end;
+  VK_NEXT, VK_SUBTRACT:
+    begin
+      ViewZoomHalf;
+    end;
+  VK_HOME, VK_RETURN:
+    begin
+      ViewFit;
+    end;
+  end;
 end;
 
 procedure TGdsView.ViewFit;

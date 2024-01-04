@@ -1,13 +1,14 @@
-object Form1: TForm1
-  Left = -1183
+object SandboxForm: TSandboxForm
+  Left = 2531
   Height = 530
-  Top = 803
+  Top = 789
   Width = 731
-  Caption = 'Form1'
+  Caption = 'Sandbox'
   ChildSizing.EnlargeHorizontal = crsScaleChilds
   ClientHeight = 530
   ClientWidth = 731
   OnCreate = FormCreate
+  Position = poScreenCenter
   LCLVersion = '3.0.0.3'
   object PairSplitter1: TPairSplitter
     AnchorSideLeft.Control = Owner
@@ -48,6 +49,7 @@ object Form1: TForm1
         ParentBackground = False
         ParentColor = False
         TabOrder = 0
+        TabStop = True
       end
       object Panel2: TPanel
         Left = 100
@@ -61,6 +63,7 @@ object Form1: TForm1
         ParentBackground = False
         ParentColor = False
         TabOrder = 1
+        TabStop = True
       end
       object Panel3: TPanel
         Left = 200
@@ -74,6 +77,7 @@ object Form1: TForm1
         ParentBackground = False
         ParentColor = False
         TabOrder = 2
+        TabStop = True
       end
     end
     object PairSplitterSide2: TPairSplitterSide
@@ -94,31 +98,34 @@ object Form1: TForm1
         ChildSizing.EnlargeVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 3
-        ClientHeight = 208
-        ClientWidth = 260
+        ClientHeight = 214
+        ClientWidth = 262
         ParentBackground = False
         TabOrder = 0
         object Button1: TButton
           Left = 0
-          Height = 208
+          Height = 214
           Top = 0
-          Width = 87
+          Width = 88
           Caption = 'Button1'
           TabOrder = 0
+          OnKeyDown = Button1KeyDown
+          OnKeyPress = Button1KeyPress
+          OnKeyUp = Button1KeyUp
         end
         object Button2: TButton
-          Left = 87
-          Height = 208
+          Left = 88
+          Height = 214
           Top = 0
           Width = 87
           Caption = 'Button2'
           TabOrder = 1
         end
         object Button3: TButton
-          Left = 174
-          Height = 208
+          Left = 175
+          Height = 214
           Top = 0
-          Width = 86
+          Width = 87
           Caption = 'Button3'
           TabOrder = 2
         end

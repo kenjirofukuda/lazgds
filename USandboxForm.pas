@@ -10,9 +10,10 @@ uses
 
 type
 
-  { TForm1 }
 
-  TForm1 = class(TForm)
+  { TSandboxForm }
+
+  TSandboxForm = class(TForm)
     Button1: TButton;
     Button2: TButton;
     Button3: TButton;
@@ -23,9 +24,12 @@ type
     Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
+    procedure Button1KeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
+    procedure Button1KeyPress(Sender: TObject; var Key: char);
+    procedure Button1KeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure FormCreate(Sender: TObject);
     procedure PairSplitterSide1MouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
+      Shift: TShiftState; X, Y: integer);
   private
 
   public
@@ -33,24 +37,48 @@ type
   end;
 
 var
-  Form1: TForm1;
+  SandboxForm: TSandboxForm;
 
 implementation
 
 {$R *.lfm}
 
-{ TForm1 }
+uses
+  LazLogger;
 
-procedure TForm1.FormCreate(Sender: TObject);
+{ TSandboxForm }
+
+procedure TSandboxForm.FormCreate(Sender: TObject);
 begin
 
 end;
 
-procedure TForm1.PairSplitterSide1MouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+
+procedure TSandboxForm.Button1KeyDown(Sender: TObject; var Key: word;
+  Shift: TShiftState);
+begin
+  DebugLn('TSandboxForm.Button1KeyDown(%d)', [Key]);
+end;
+
+
+procedure TSandboxForm.Button1KeyPress(Sender: TObject; var Key: char);
+begin
+  DebugLn('TSandboxForm.Button1KeyPress(%d)', [integer(Key)]);
+
+end;
+
+
+procedure TSandboxForm.Button1KeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
+begin
+  DebugLn('TSandboxForm.Button1KeyUp(%d)', [Key]);
+  DebugLn('');
+end;
+
+
+procedure TSandboxForm.PairSplitterSide1MouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: integer);
 begin
 
 end;
 
 end.
-

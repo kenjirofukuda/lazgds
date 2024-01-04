@@ -22,10 +22,10 @@ type
     DebugMenu: TMenuItem;
     OpenSandboxMenuItem: TMenuItem;
     OpenGdsDialog: TOpenDialog;
-    DummyPaintBox: TPaintBox;
     PairSplitter: TPairSplitter;
     PairSplitterSideLists: TPairSplitterSide;
     PairSplitterSideCanvas: TPairSplitterSide;
+    DummyPanel: TPanel;
     StatusBar: TStatusBar;
     StructureListBox: TListBox;
     XYListView: TListView;
@@ -35,6 +35,8 @@ type
     QuitMenuItem: TMenuItem;
 
     procedure OpenSandboxMenuItemClick(Sender: TObject);
+    procedure PairSplitterSideCanvasMouseDown(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure QuitMenuItemClick(Sender: TObject);
     procedure OpenGdsFile(Sender: TObject);
 
@@ -109,7 +111,13 @@ end;
 
 procedure TGdsBrowserForm.OpenSandboxMenuItemClick(Sender: TObject);
 begin
-  Form1.Visible := True;
+  SandboxForm.Visible := True;
+end;
+
+procedure TGdsBrowserForm.PairSplitterSideCanvasMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+
 end;
 
 
@@ -145,11 +153,12 @@ begin
     Visible := True;
     Parent := PairSplitterSideCanvas;
   end;
-  DummyPaintBox.Visible := False;
+  DummyPanel.Visible := False;
   {kill design layout color}
   StructureListBox.Color := clDefault;
   ElementListBox.Color := clDefault;
   XYListView.Color := clDefault;
+  PairSplitter.Color := clDefault;
 end;
 
 
@@ -165,6 +174,8 @@ begin
     Exit;
   DebugLn(Sender.ExtractAscii(ABytes));
 end;
+
+
 
 
 procedure TGdsBrowserForm.StructureListBoxSelectionChange(Sender: TObject;
