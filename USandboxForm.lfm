@@ -1,7 +1,7 @@
 object SandboxForm: TSandboxForm
-  Left = 2531
+  Left = 522
   Height = 530
-  Top = 789
+  Top = 864
   Width = 731
   Caption = 'Sandbox'
   ChildSizing.EnlargeHorizontal = crsScaleChilds
@@ -42,6 +42,8 @@ object SandboxForm: TSandboxForm
         Height = 530
         Top = 0
         Width = 100
+        BevelColor = clYellow
+        BevelOuter = bvSpace
         Caption = 'Panel1'
         Color = clRed
         Constraints.MinHeight = 10
@@ -50,12 +52,16 @@ object SandboxForm: TSandboxForm
         ParentColor = False
         TabOrder = 0
         TabStop = True
+        OnEnter = PanelAnyEnter
+        OnExit = PanelAnyExit
       end
       object Panel2: TPanel
         Left = 100
         Height = 530
         Top = 0
         Width = 100
+        BevelColor = clYellow
+        BevelOuter = bvSpace
         Caption = 'Panel2'
         Color = clLime
         Constraints.MinHeight = 10
@@ -64,12 +70,16 @@ object SandboxForm: TSandboxForm
         ParentColor = False
         TabOrder = 1
         TabStop = True
+        OnEnter = PanelAnyEnter
+        OnExit = PanelAnyExit
       end
       object Panel3: TPanel
         Left = 200
         Height = 530
         Top = 0
         Width = 100
+        BevelColor = clYellow
+        BevelOuter = bvSpace
         Caption = 'Panel3'
         Color = clBlue
         Constraints.MinHeight = 10
@@ -78,6 +88,8 @@ object SandboxForm: TSandboxForm
         ParentColor = False
         TabOrder = 2
         TabStop = True
+        OnEnter = PanelAnyEnter
+        OnExit = PanelAnyExit
       end
     end
     object PairSplitterSide2: TPairSplitterSide

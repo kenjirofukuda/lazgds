@@ -18,13 +18,15 @@ type
   TGdsView = class(TWorldView)
   private
     FDrawerMap: TDrawerMap;
-    FDrawMilliSeconds: Int64;
+    FDrawMilliSeconds: int64;
     FSelectedDrawing: integer;
     FViewMoveRatio: single;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure HandlePaint(Sender: TObject); override;
+    procedure GdsPanelEnter(Sender: TObject);
+    procedure GdsPanelExit(Sender: TObject);
     procedure DrawElements(AElements: TGdsElements);
     procedure DrawStructure(AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
@@ -105,7 +107,7 @@ end;
 
 procedure TElementDrawer.DoStrokeOn(ACanvas: TCanvas);
 begin
-//  savedColor := ACanvas.Pen.Color;
+  //  savedColor := ACanvas.Pen.Color;
   if GdsView.SelectedDrawing > 0 then
   begin
     ACanvas.Pen.Color := clWhite;
@@ -117,7 +119,7 @@ begin
     ACanvas.Pen.Width := 1;
   end;
   StrokeOn(ACanvas);
-//  ACanvas.Pen.Color := savedColor;
+  //  ACanvas.Pen.Color := savedColor;
 end;
 
 
@@ -187,6 +189,8 @@ begin
   TabStop := True;
   TabOrder := 2;
   OnKeyUp := @HandleKeyUp;
+  OnEnter := @GdsPanelEnter;
+  OnExit := @GdsPanelExit;
   WorldDrawer := TGdsDrawer.Create(FViewport);
   FDrawerMap := TDrawerMap.Create;
   FDrawerMap['TGdsBoundary'] := TBoundaryDrawer.Create(FViewport);
@@ -212,49 +216,51 @@ begin
   Result := (WorldDrawer as TGdsDrawer);
 end;
 
-procedure TGdsView.HandleKeyUp(Sender: TObject; var Key: word;
-  Shift: TShiftState);
+
+procedure TGdsView.HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
 begin
   case Key of
-  VK_LEFT, VK_NUMPAD4:
+    VK_LEFT, VK_NUMPAD4:
     begin
       ViewMoveLeft;
     end;
-  VK_RIGHT, VK_NUMPAD6:
+    VK_RIGHT, VK_NUMPAD6:
     begin
       ViewMoveRight;
     end;
-  VK_UP, VK_NUMPAD8:
+    VK_UP, VK_NUMPAD8:
     begin
       ViewMoveUp;
     end;
-  VK_DOWN, VK_NUMPAD2:
+    VK_DOWN, VK_NUMPAD2:
     begin
       ViewMoveDown;
     end;
-  VK_PRIOR, VK_ADD:
+    VK_PRIOR, VK_ADD:
     begin
       ViewZoomDouble;
     end;
-  VK_NEXT, VK_SUBTRACT:
+    VK_NEXT, VK_SUBTRACT:
     begin
       ViewZoomHalf;
     end;
-  VK_HOME, VK_RETURN:
+    VK_HOME, VK_RETURN:
     begin
       ViewFit;
     end;
   end;
 end;
 
+
 procedure TGdsView.ViewFit;
 begin
   if Assigned(GdsStation.GdsStructure) then
   begin
-     ViewPort.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
-     Invalidate;
+    ViewPort.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
+    Invalidate;
   end;
 end;
+
 
 procedure TGdsView.ViewZoomDouble;
 begin
@@ -262,11 +268,13 @@ begin
   Invalidate;
 end;
 
+
 procedure TGdsView.ViewZoomHalf;
 begin
   Viewport.SetWorldScale(ViewPort.WorldScale * 0.5);
   Invalidate;
 end;
+
 
 procedure TGdsView.ViewMoveUp;
 begin
@@ -274,17 +282,20 @@ begin
   Invalidate;
 end;
 
+
 procedure TGdsView.ViewMoveDown;
 begin
   ViewPort.ViewMoveFraction(0.0, -FViewMoveRatio);
   Invalidate;
 end;
 
+
 procedure TGdsView.ViewMoveRight;
 begin
   ViewPort.ViewMoveFraction(FViewMoveRatio, 0.0);
   Invalidate;
 end;
+
 
 procedure TGdsView.ViewMoveLeft;
 begin
@@ -298,6 +309,7 @@ var
   textY: integer;
   textHeight: integer;
   startTime, endTime: TDateTime;
+
 
   procedure DrawColors;
   var
@@ -325,6 +337,7 @@ var
     colors := nil;
   end;
 
+
   procedure DrawDebugInfo;
   var
     stringList: TStringList;
@@ -351,12 +364,16 @@ var
       stringList.Free;
     end;
     Canvas.TextOut(10, ClientHeight - textHeight,
-                   Format('DRAWTIME: %d msecs', [FDrawMilliSeconds]));
+      Format('DRAWTIME: %d msecs', [FDrawMilliSeconds]));
   end;
 
 begin
   Canvas.Brush.Color := clBlack;
   Canvas.Clear;
+  if BorderWidth > 0 then
+  begin
+    Canvas.DrawFocusRect(ClientRect);
+  end;
   if GdsStation.GdsStructure = nil then
   begin
     DrawColors;
@@ -368,6 +385,32 @@ begin
   endTime := Time;
   FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
   DrawDebugInfo;
+end;
+
+
+procedure TGdsView.GdsPanelEnter(Sender: TObject);
+begin
+  if Sender is TGdsView then
+  begin
+    with (Sender as TGdsView) do
+    begin
+      BorderWidth := 3;
+    end;
+  end;
+
+end;
+
+
+procedure TGdsView.GdsPanelExit(Sender: TObject);
+begin
+  if Sender is TGdsView then
+  begin
+    with (Sender as TGdsView) do
+    begin
+      BorderWidth := 0;
+    end;
+  end;
+
 end;
 
 

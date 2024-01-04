@@ -30,6 +30,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure PairSplitterSide1MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: integer);
+    procedure PanelAnyExit(Sender: TObject);
+    procedure PanelAnyEnter(Sender: TObject);
   private
 
   public
@@ -46,7 +48,7 @@ implementation
 uses
   LazLogger;
 
-{ TSandboxForm }
+  { TSandboxForm }
 
 procedure TSandboxForm.FormCreate(Sender: TObject);
 begin
@@ -78,6 +80,34 @@ end;
 procedure TSandboxForm.PairSplitterSide1MouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: integer);
 begin
+
+end;
+
+
+procedure TSandboxForm.PanelAnyExit(Sender: TObject);
+begin
+  if Sender is TPanel then
+  begin
+    with (Sender as TPanel) do
+    begin
+      BevelColor := clDefault;
+      BevelWidth := 1;
+    end;
+  end;
+
+end;
+
+
+procedure TSandboxForm.PanelAnyEnter(Sender: TObject);
+begin
+  if Sender is TPanel then
+  begin
+    with (Sender as TPanel) do
+    begin
+      BevelColor := clYellow;
+      BevelWidth := 3;
+    end;
+  end;
 
 end;
 

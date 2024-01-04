@@ -1,9 +1,9 @@
 object GdsBrowserForm: TGdsBrowserForm
-  Left = 2188
+  Left = 467
   Height = 894
-  Top = 412
+  Top = 537
   Width = 1266
-  Caption = 'GdsFeel'
+  Caption = 'LazGds'
   ClientHeight = 894
   ClientWidth = 1266
   Menu = MainMenu

@@ -114,6 +114,7 @@ begin
   SandboxForm.Visible := True;
 end;
 
+
 procedure TGdsBrowserForm.PairSplitterSideCanvasMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
