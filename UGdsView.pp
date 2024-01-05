@@ -20,7 +20,7 @@ type
     FDrawerMap: TDrawerMap;
     FDrawMilliSeconds: int64;
     FSelectedDrawing: integer;
-    //FViewMoveRatio: single;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -28,8 +28,8 @@ type
     function GetFitBounds: TRectangleF; override;
 
     { event handlers }
-    procedure GdsPanelEnter(Sender: TObject);
-    procedure GdsPanelExit(Sender: TObject);
+    procedure HandlePanelEnter(Sender: TObject);
+    procedure HandlePanelExit(Sender: TObject);
     procedure HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
 
     procedure DrawElements(AElements: TGdsElements);
@@ -182,8 +182,8 @@ begin
   TabStop := True;
   TabOrder := 2;
   OnKeyUp := @HandleKeyUp;
-  OnEnter := @GdsPanelEnter;
-  OnExit := @GdsPanelExit;
+  OnEnter := @HandlePanelEnter;
+  OnExit := @HandlePanelExit;
   WorldDrawer := TGdsDrawer.Create(FViewport);
   FDrawerMap := TDrawerMap.Create;
   FDrawerMap['TGdsBoundary'] := TBoundaryDrawer.Create(FViewport);
@@ -338,7 +338,7 @@ begin
 end;
 
 
-procedure TGdsView.GdsPanelEnter(Sender: TObject);
+procedure TGdsView.HandlePanelEnter(Sender: TObject);
 begin
   if Sender is TGdsView then
   begin
@@ -351,7 +351,7 @@ begin
 end;
 
 
-procedure TGdsView.GdsPanelExit(Sender: TObject);
+procedure TGdsView.HandlePanelExit(Sender: TObject);
 begin
   if Sender is TGdsView then
   begin
