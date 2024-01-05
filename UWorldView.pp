@@ -60,6 +60,7 @@ type
     FViewMoveRatio: single;
 
   public
+    procedure HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure HandleMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: integer);
     procedure HandleMouseMove(Sender: TObject; Shift: TShiftState; X, Y: integer);
@@ -119,6 +120,10 @@ type
 
 
 implementation
+
+uses
+  LCLType;
+
 
 constructor TWorldDrawer.Create(AViewport: TViewport);
 begin
@@ -223,6 +228,7 @@ begin
   FToolMap := TToolMap.Create;
   OnPaint := @HandlePaint;
   OnResize := @HandleResize;
+  OnKeyUp := @HandleKeyUp;
 end;
 
 
@@ -246,6 +252,41 @@ end;
 function TWorldView.GetFitBounds: TRectangleF;
 begin
   Result := RectangleF(-100, -100, 100, 100);
+end;
+
+
+procedure TWorldView.HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
+begin
+  case Key of
+    VK_LEFT, VK_NUMPAD4:
+    begin
+      ViewMoveLeft;
+    end;
+    VK_RIGHT, VK_NUMPAD6:
+    begin
+      ViewMoveRight;
+    end;
+    VK_UP, VK_NUMPAD8:
+    begin
+      ViewMoveUp;
+    end;
+    VK_DOWN, VK_NUMPAD2:
+    begin
+      ViewMoveDown;
+    end;
+    VK_PRIOR, VK_ADD:
+    begin
+      ViewZoomDouble;
+    end;
+    VK_NEXT, VK_SUBTRACT:
+    begin
+      ViewZoomHalf;
+    end;
+    VK_HOME, VK_RETURN:
+    begin
+      ViewFit;
+    end;
+  end;
 end;
 
 

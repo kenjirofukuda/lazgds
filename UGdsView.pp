@@ -30,7 +30,6 @@ type
     { event handlers }
     procedure HandlePanelEnter(Sender: TObject);
     procedure HandlePanelExit(Sender: TObject);
-    procedure HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
 
     procedure DrawElements(AElements: TGdsElements);
     procedure DrawStructure(AStructure: TGdsStructure);
@@ -181,7 +180,6 @@ begin
   inherited Create(AOwner);
   TabStop := True;
   TabOrder := 2;
-  OnKeyUp := @HandleKeyUp;
   OnEnter := @HandlePanelEnter;
   OnExit := @HandlePanelExit;
   WorldDrawer := TGdsDrawer.Create(FViewport);
@@ -209,40 +207,6 @@ begin
   Result := (WorldDrawer as TGdsDrawer);
 end;
 
-
-procedure TGdsView.HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
-begin
-  case Key of
-    VK_LEFT, VK_NUMPAD4:
-    begin
-      ViewMoveLeft;
-    end;
-    VK_RIGHT, VK_NUMPAD6:
-    begin
-      ViewMoveRight;
-    end;
-    VK_UP, VK_NUMPAD8:
-    begin
-      ViewMoveUp;
-    end;
-    VK_DOWN, VK_NUMPAD2:
-    begin
-      ViewMoveDown;
-    end;
-    VK_PRIOR, VK_ADD:
-    begin
-      ViewZoomDouble;
-    end;
-    VK_NEXT, VK_SUBTRACT:
-    begin
-      ViewZoomHalf;
-    end;
-    VK_HOME, VK_RETURN:
-    begin
-      ViewFit;
-    end;
-  end;
-end;
 
 function TGdsView.GetFitBounds: TRectangleF;
 begin
