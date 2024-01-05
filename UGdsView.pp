@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Graphics, Controls, fgl, BGRATransform,
-  UWorldView, UGds;
+  UGeometryUtils, UWorldView, UGds;
 
 type
   TGdsDrawer = class;
@@ -20,29 +20,22 @@ type
     FDrawerMap: TDrawerMap;
     FDrawMilliSeconds: int64;
     FSelectedDrawing: integer;
-    FViewMoveRatio: single;
+    //FViewMoveRatio: single;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure HandlePaint(Sender: TObject); override;
+    function GetFitBounds: TRectangleF; override;
+
+    { event handlers }
     procedure GdsPanelEnter(Sender: TObject);
     procedure GdsPanelExit(Sender: TObject);
+    procedure HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
+
     procedure DrawElements(AElements: TGdsElements);
     procedure DrawStructure(AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
     property SelectedDrawing: integer read FSelectedDrawing;
-
-    procedure HandleKeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
-
-    { View Navigation }
-    { TODO: move to TWorldView }
-    procedure ViewFit;
-    procedure ViewZoomDouble;
-    procedure ViewZoomHalf;
-    procedure ViewMoveUp;
-    procedure ViewMoveDown;
-    procedure ViewMoveRight;
-    procedure ViewMoveLeft;
   end;
 
   TGdsDrawer = class(TWorldDrawer)
@@ -94,7 +87,7 @@ implementation
 
 uses
   Types, LCLType, DateUtils, LazLogger,
-  UGdsStation, UGeometryUtils, UColorUtils;
+  UGdsStation, UColorUtils;
 
 
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
@@ -251,56 +244,13 @@ begin
   end;
 end;
 
-
-procedure TGdsView.ViewFit;
+function TGdsView.GetFitBounds: TRectangleF;
 begin
+  Result := inherited GetFitBounds;
   if Assigned(GdsStation.GdsStructure) then
   begin
-    ViewPort.SetWorldBounds(GdsStation.GdsStructure.GetExtentBounds);
-    Invalidate;
+    Result := GdsStation.GdsStructure.GetExtentBounds;
   end;
-end;
-
-
-procedure TGdsView.ViewZoomDouble;
-begin
-  Viewport.SetWorldScale(ViewPort.WorldScale * 2.0);
-  Invalidate;
-end;
-
-
-procedure TGdsView.ViewZoomHalf;
-begin
-  Viewport.SetWorldScale(ViewPort.WorldScale * 0.5);
-  Invalidate;
-end;
-
-
-procedure TGdsView.ViewMoveUp;
-begin
-  ViewPort.ViewMoveFraction(0.0, FViewMoveRatio);
-  Invalidate;
-end;
-
-
-procedure TGdsView.ViewMoveDown;
-begin
-  ViewPort.ViewMoveFraction(0.0, -FViewMoveRatio);
-  Invalidate;
-end;
-
-
-procedure TGdsView.ViewMoveRight;
-begin
-  ViewPort.ViewMoveFraction(FViewMoveRatio, 0.0);
-  Invalidate;
-end;
-
-
-procedure TGdsView.ViewMoveLeft;
-begin
-  ViewPort.ViewMoveFraction(-FViewMoveRatio, 0.0);
-  Invalidate;
 end;
 
 
@@ -364,7 +314,7 @@ var
       stringList.Free;
     end;
     Canvas.TextOut(10, ClientHeight - textHeight,
-      Format('DRAWTIME: %d msecs', [FDrawMilliSeconds]));
+      Format('DRAWTIME: %d msecs %6.3f secs', [FDrawMilliSeconds, FDrawMilliSeconds / 1000]));
   end;
 
 begin

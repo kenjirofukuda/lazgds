@@ -1,7 +1,7 @@
 object GdsBrowserForm: TGdsBrowserForm
   Left = 467
   Height = 894
-  Top = 537
+  Top = 62
   Width = 1266
   Caption = 'LazGds'
   ClientHeight = 894

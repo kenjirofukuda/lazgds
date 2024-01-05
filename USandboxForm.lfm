@@ -1,7 +1,7 @@
 object SandboxForm: TSandboxForm
-  Left = 522
+  Left = 733
   Height = 530
-  Top = 864
+  Top = 311
   Width = 731
   Caption = 'Sandbox'
   ChildSizing.EnlargeHorizontal = crsScaleChilds
@@ -101,9 +101,9 @@ object SandboxForm: TSandboxForm
       ClientWidth = 426
       ClientHeight = 530
       object GroupBox1: TGroupBox
-        Left = 56
+        Left = 64
         Height = 232
-        Top = 96
+        Top = 40
         Width = 264
         Caption = 'GroupBox1'
         ChildSizing.EnlargeHorizontal = crsScaleChilds

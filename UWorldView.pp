@@ -37,6 +37,8 @@ type
   end;
 
 
+  { TWorldView }
+
   TWorldView = class(TPanel)
     constructor Create(AOwner: TComponent); override;
 
@@ -55,6 +57,7 @@ type
     FShowExtentBounds: boolean;
     FShowAxisLine: boolean;
     FToolMap: TToolMap;
+    FViewMoveRatio: single;
 
   public
     procedure HandleMouseDown(Sender: TObject; Button: TMouseButton;
@@ -72,11 +75,21 @@ type
 
     procedure ChooseTool(toolName: string);
 
+    function GetFitBounds: TRectangleF; virtual;
+
+    procedure ViewFit;
+    procedure ViewZoomDouble;
+    procedure ViewZoomHalf;
+    procedure ViewMoveUp;
+    procedure ViewMoveDown;
+    procedure ViewMoveRight;
+    procedure ViewMoveLeft;
+
     property Viewport: TViewport read FViewport;
     property WorldDrawer: TWorldDrawer read FWorldDrawer write SetWorldDrawer;
     property ShowExtentBounds: boolean read FShowExtentBounds write FShowExtentBounds;
     property ShowAxisLine: boolean read FShowAxisLine write FShowAxisLine;
-
+    property ViewMoveRatio: single read FViewMoveRatio write FViewMoveRatio;
   end;
 
   { TViewTracking }
@@ -230,6 +243,11 @@ begin
   FViewTracking.Reset;
 end;
 
+function TWorldView.GetFitBounds: TRectangleF;
+begin
+  Result := RectangleF(-100, -100, 100, 100);
+end;
+
 
 procedure TWorldView.HandleMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: integer);
@@ -328,6 +346,55 @@ function TWorldView.DoMouseWheel(Shift: TShiftState; WheelDelta: integer;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
   HandleMouseWheel(self, Shift, WheelDelta, MousePos, Result);
+end;
+
+
+procedure TWorldView.ViewFit;
+begin
+  ViewPort.SetWorldBounds(GetFitBounds);
+  Invalidate;
+end;
+
+
+procedure TWorldView.ViewZoomDouble;
+begin
+  Viewport.SetWorldScale(ViewPort.WorldScale * 2.0);
+  Invalidate;
+end;
+
+
+procedure TWorldView.ViewZoomHalf;
+begin
+  Viewport.SetWorldScale(ViewPort.WorldScale * 0.5);
+  Invalidate;
+end;
+
+
+procedure TWorldView.ViewMoveUp;
+begin
+  ViewPort.ViewMoveFraction(0.0, ViewMoveRatio);
+  Invalidate;
+end;
+
+
+procedure TWorldView.ViewMoveDown;
+begin
+  ViewPort.ViewMoveFraction(0.0, -ViewMoveRatio);
+  Invalidate;
+end;
+
+
+procedure TWorldView.ViewMoveRight;
+begin
+  ViewPort.ViewMoveFraction(ViewMoveRatio, 0.0);
+  Invalidate;
+end;
+
+
+procedure TWorldView.ViewMoveLeft;
+begin
+  ViewPort.ViewMoveFraction(-ViewMoveRatio, 0.0);
+  Invalidate;
 end;
 
 
