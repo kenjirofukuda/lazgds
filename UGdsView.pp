@@ -31,8 +31,8 @@ type
     procedure HandlePanelEnter(Sender: TObject);
     procedure HandlePanelExit(Sender: TObject);
 
-    procedure DrawElements(AElements: TGdsElements);
-    procedure DrawStructure(AStructure: TGdsStructure);
+    procedure DrawElements(ACanvas: TCanvas; AElements: TGdsElements);
+    procedure DrawStructure(ACanvas: TCanvas; AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
     property SelectedDrawing: integer read FSelectedDrawing;
   end;
@@ -154,7 +154,7 @@ begin
   //DebugLn('TSrefDrawer.DrawOn');
   eSref := (Element as TGdsSref);
   Viewport.PushTransform(eSref.GetTransform);
-  GdsView.DrawStructure(eSref.RefStructure);
+  GdsView.DrawStructure(ACanvas, eSref.RefStructure);
   Viewport.PopTransform;
 end;
 
@@ -169,7 +169,7 @@ begin
   for otx in eAref.RepeatedTransforms do
   begin
     Viewport.PushTransform(otx);
-    GdsView.DrawStructure(eAref.RefStructure);
+    GdsView.DrawStructure(ACanvas, eAref.RefStructure);
     Viewport.PopTransform;
   end;
 end;
@@ -225,7 +225,7 @@ var
   startTime, endTime: TDateTime;
 
 
-  procedure DrawColors;
+  procedure DrawColors(ACanvas: TCanvas);
   var
     ThisMany: integer;
     colors: TColors;
@@ -242,17 +242,17 @@ var
     y2 := ClientHeight;
     for i := 0 to ThisMany - 1 do
     begin
-      Canvas.Brush.Color := colors[i];
+      ACanvas.Brush.Color := colors[i];
       x1 := i * step;
       x2 := i * step + step;
-      Canvas.FillRect(x1, y1, x2, y2);
+      ACanvas.FillRect(x1, y1, x2, y2);
     end;
-    Canvas.Brush.Color := savedColor;
+    ACanvas.Brush.Color := savedColor;
     colors := nil;
   end;
 
 
-  procedure DrawDebugInfo;
+  procedure DrawDebugInfo(ACanvas: TCanvas);
   var
     stringList: TStringList;
     each: string;
@@ -262,9 +262,9 @@ var
     Canvas.Font.Size := 18;
     textHeight := trunc(Canvas.Font.Size * 1.8);
     textY := 10;
-    Canvas.TextOut(10, textY, GdsStation.GdsStructure.Name);
+    ACanvas.TextOut(10, textY, GdsStation.GdsStructure.Name);
     Inc(textY, textHeight);
-    Canvas.TextOut(10, textY, StringFromRectangleF(
+    ACanvas.TextOut(10, textY, StringFromRectangleF(
       GdsStation.GdsStructure.GetExtentBounds));
     if GdsStation.GdsElement <> nil then
     begin
@@ -277,7 +277,7 @@ var
       end;
       stringList.Free;
     end;
-    Canvas.TextOut(10, ClientHeight - textHeight,
+    ACanvas.TextOut(10, ClientHeight - textHeight,
       Format('DRAWTIME: %d msecs %6.3f secs', [FDrawMilliSeconds, FDrawMilliSeconds / 1000]));
   end;
 
@@ -290,15 +290,15 @@ begin
   end;
   if GdsStation.GdsStructure = nil then
   begin
-    DrawColors;
+    DrawColors(Canvas);
     Exit;
   end;
   FSelectedDrawing := 0;
   startTime := Time;
-  DrawStructure(GdsStation.GdsStructure);
+  DrawStructure(Canvas, GdsStation.GdsStructure);
   endTime := Time;
   FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
-  DrawDebugInfo;
+  DrawDebugInfo(Canvas);
 end;
 
 
@@ -328,7 +328,7 @@ begin
 end;
 
 
-procedure TGdsView.DrawElements(AElements: TGdsElements);
+procedure TGdsView.DrawElements(ACanvas: TCanvas; AElements: TGdsElements);
 var
   GD: TElementDrawer;
   E: TGdsElement;
@@ -338,7 +338,7 @@ begin
     GD := FDrawerMap[E.ClassName];
     GD.Element := E;
     GD.GdsView := self;
-    GD.DrawOn(Canvas);
+    GD.DrawOn(ACanvas);
   end;
   if (Assigned(GdsStation.GdsElement)) and (ViewPort.PushedTransformCount = 0) then
   begin
@@ -347,15 +347,15 @@ begin
     GD := FDrawerMap[E.ClassName];
     GD.Element := E;
     GD.GdsView := self;
-    GD.DrawOn(Canvas);
+    GD.DrawOn(ACanvas);
     Dec(FSelectedDrawing);
   end;
 end;
 
 
-procedure TGdsView.DrawStructure(AStructure: TGdsStructure);
+procedure TGdsView.DrawStructure(ACanvas: TCanvas; AStructure: TGdsStructure);
 begin
-  DrawElements(AStructure.Elements);
+  DrawElements(ACanvas, AStructure.Elements);
 end;
 
 

@@ -226,6 +226,7 @@ begin
   FShowAxisLine := True;
   FViewTracking := TViewTracking.Create(self);
   FToolMap := TToolMap.Create;
+  ViewMoveRatio := 0.25;
   OnPaint := @HandlePaint;
   OnResize := @HandleResize;
   OnKeyUp := @HandleKeyUp;
