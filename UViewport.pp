@@ -61,6 +61,7 @@ type
     procedure SetWorldBounds(AWorldBounds: TRectangleF);
     function GetWorldBounds: TRectangleF;
     procedure ResetWorld;
+    property WorldCenter: TPointF read FWorldCenter;
 
     procedure PushTransform(t: TAffineMatrix);
     function PopTransform: TAffineMatrix;

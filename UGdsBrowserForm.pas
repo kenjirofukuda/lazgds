@@ -33,6 +33,10 @@ type
     ChooseGdsMenuItem: TMenuItem;
     Separator1: TMenuItem;
     QuitMenuItem: TMenuItem;
+  private
+    FGdsInform: TGdsInform;
+    FGdsView: TGdsView;
+  published
 
     procedure OpenSandboxMenuItemClick(Sender: TObject);
     procedure PairSplitterSideCanvasMouseDown(Sender: TObject;
@@ -46,10 +50,7 @@ type
     procedure HandleBytes(const ABytes: TBytes; Sender: TGdsInform);
     procedure StructureListBoxSelectionChange(Sender: TObject; User: boolean);
     procedure ElementListBoxSelectionChange(Sender: TObject; User: boolean);
-
-  private
-    FGdsInform: TGdsInform;
-    FGdsView: TGdsView;
+    property GdsView: TGdsView read FGdsView;
   public
   end;
 

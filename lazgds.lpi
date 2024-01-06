@@ -25,6 +25,9 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="LazOpenGLContext"/>
+      </Item>
+      <Item>
         <PackageName Value="BGRABitmapPack"/>
         <MinVersion Major="11" Minor="5" Release="8" Valid="True"/>
       </Item>

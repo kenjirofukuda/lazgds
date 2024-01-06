@@ -18,13 +18,13 @@ type
     function GetWidth: single;
     function GetHeight: single;
     function GetExtent: TPointF;
-    function GetCenter: TPointF;
   public
     function Merge(ABounds: TRectangleF): TRectangleF;
     function IsValid: boolean;
     property Width: single read GetWidth;
     property Height: single read GetHeight;
     property Extent: TPointF read GetExtent;
+    function GetCenter: TPointF;
     function CornerPoints: TPointF4;
   end;
 
