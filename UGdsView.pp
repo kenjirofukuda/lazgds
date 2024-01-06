@@ -86,7 +86,7 @@ implementation
 
 uses
   Types, LCLType, DateUtils, LazLogger,
-  UGdsStation, UColorUtils;
+  UGdsStation, UColorUtils, BGRABitmap, BGRABitmapTypes;
 
 
 procedure TElementDrawer.DrawOn(ACanvas: TCanvas);
@@ -151,7 +151,6 @@ procedure TSrefDrawer.DrawOn(ACanvas: TCanvas);
 var
   eSref: TGdsSref;
 begin
-  //DebugLn('TSrefDrawer.DrawOn');
   eSref := (Element as TGdsSref);
   Viewport.PushTransform(eSref.GetTransform);
   GdsView.DrawStructure(ACanvas, eSref.RefStructure);
@@ -164,7 +163,6 @@ var
   eAref: TGdsAref;
   otx: TAffineMatrix;
 begin
-  //DebugLn('TArefDrawer.DrawOn');
   eAref := (Element as TGdsAref);
   for otx in eAref.RepeatedTransforms do
   begin
@@ -218,11 +216,30 @@ begin
 end;
 
 
+function BGRAColor(AColor: TColor): TBGRAPixel; inline;
+begin
+  Result := ColorToBGRA(ColorToRGB(AColor))
+end;
+
 procedure TGdsView.HandlePaint(Sender: TObject);
 var
   textY: integer;
   textHeight: integer;
   startTime, endTime: TDateTime;
+
+  procedure DrawExample(ACanvas: TCanvas);
+  var
+    BGRABitmap: TBGRABitmap;
+  begin
+    BGRABitmap := TBGRABitmap.Create(ClientWidth, ClientHeight); //, BGRAColor(clBlue));
+    try
+       BGRABitmap.DrawLine(0, 0, ClientWidth, ClientHeight, BGRAColor(clYellow), False);
+       BGRABitmap.DrawLineAntialias(0, ClientHeight, ClientWidth, 0, BGRAColor(clYellow), False);
+       BGRABitmap.Draw(ACanvas, 0, 0, False);
+    finally
+      FreeAndNil(BGRABitmap);
+    end;
+  end;
 
 
   procedure DrawColors(ACanvas: TCanvas);
@@ -290,6 +307,7 @@ begin
   end;
   if GdsStation.GdsStructure = nil then
   begin
+    DrawExample(Canvas);
     DrawColors(Canvas);
     Exit;
   end;
@@ -298,6 +316,7 @@ begin
   DrawStructure(Canvas, GdsStation.GdsStructure);
   endTime := Time;
   FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
+  DrawExample(Canvas);
   DrawDebugInfo(Canvas);
 end;
 
