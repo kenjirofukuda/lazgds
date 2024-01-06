@@ -5,10 +5,10 @@ unit UGdsStation;
 interface
 
 uses
-  Classes, SysUtils, Graphics, fgl, UGds;
+  Classes, SysUtils, Graphics, fgl, UGds, UMultiEvent;
 
 type
-  TLayerToColorMap = specialize TFPGMap<Int32, TColor>;
+  TLayerToColorMap = specialize TFPGMap<int32, TColor>;
 
   { TGdsStation }
 
@@ -18,12 +18,16 @@ type
     FGdsStructure: TGdsStructure;
     FGdsElement: TGdsElement;
     FLayerToColorMap: TLayerToColorMap;
+    FEvents: TMultiEventSend;
   public
+    constructor Create;
     destructor Destroy; override;
-    function LayerToColor(ALayer: Int32): TColor;
+    function LayerToColor(ALayer: int32): TColor;
+    procedure SetGdsStructure(AStructure: TGdsStructure);
     property GdsLibrary: TGdsLibrary read FGdsLibrary write FGdsLibrary;
-    property GdsStructure: TGdsStructure read FGdsStructure write FGdsStructure;
+    property GdsStructure: TGdsStructure read FGdsStructure write SetGdsStructure;
     property GdsElement: TGdselement read FGdsElement write FGdsElement;
+    property Events: TMultiEventSend read FEvents;
   end;
 
 var
@@ -34,14 +38,23 @@ implementation
 uses
   LazLogger, UColorUtils;
 
+
+constructor TGdsStation.Create;
+begin
+  FEvents := TMultiEventSend.Create(nil);
+end;
+
+
 destructor TGdsStation.Destroy;
 begin
   DebugLn('TGdsStation.Destroy');
   FreeAndNil(FLayerToColorMap);
   FreeAndNil(FGdsLibrary);
+  FreeAndNil(FEvents);
 end;
 
-function TGdsStation.LayerToColor(ALayer: Int32): TColor;
+
+function TGdsStation.LayerToColor(ALayer: int32): TColor;
 var
   layers: TInt32s;
   colors: TColors;
@@ -62,9 +75,19 @@ begin
     color := FLayerToColorMap[ALayer];
   except
     on Exception do
-       color := clGray;
+      color := clGray;
   end;
   Result := color;
+end;
+
+
+procedure TGdsStation.SetGdsStructure(AStructure: TGdsStructure);
+begin
+  if AStructure <> FGdsStructure then
+  begin
+    FGdsStructure := AStructure;
+    Events.Notify(Self);
+  end;
 end;
 
 initialization

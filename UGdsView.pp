@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Graphics, Controls, fgl, BGRATransform,
-  UGeometryUtils, UWorldView, UGds;
+  UGeometryUtils, UWorldView, UGds, UMultiEvent;
 
 type
   TGdsDrawer = class;
@@ -17,9 +17,11 @@ type
 
   TGdsView = class(TWorldView)
   private
+    FStructure: TGdsStructure;
     FDrawerMap: TDrawerMap;
     FDrawMilliSeconds: int64;
     FSelectedDrawing: integer;
+    FEvents: TMultiEventReceive;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -35,6 +37,9 @@ type
     procedure DrawStructure(ACanvas: TCanvas; AStructure: TGdsStructure);
     function GdsDrawer: TGdsDrawer;
     property SelectedDrawing: integer read FSelectedDrawing;
+    property Structure: TGdsStructure read FStructure;
+  private
+    procedure OnUpdate(Sender, Arg: TObject);
   end;
 
   TGdsDrawer = class(TWorldDrawer)
@@ -190,11 +195,15 @@ begin
   FDrawerMap['TGdsAref'] := TArefDrawer.Create(FViewport);
   FDrawMilliSeconds := -1;
   FViewMoveRatio := 0.25;
+  FEvents := TMultiEventReceive.Create(Self);
+  FEvents.OnUpdate := @OnUpdate;
+  GdsStation.Events.Add(FEvents);
 end;
 
 
 destructor TGdsView.Destroy;
 begin
+  FreeAndNil(FEvents);
   FreeAndNil(FDrawerMap);
   inherited Destroy;
 end;
@@ -206,20 +215,32 @@ begin
 end;
 
 
+procedure TGdsView.OnUpdate(Sender, Arg: TObject);
+begin
+  if Arg.ClassType = TGdsStation then
+  begin
+    FStructure := (Arg as TGdsStation).GdsStructure;
+    Viewport.SetWorldBounds(FStructure.GetExtentBounds);
+    Invalidate;
+  end;
+end;
+
+
 function TGdsView.GetFitBounds: TRectangleF;
 begin
   Result := inherited GetFitBounds;
-  if Assigned(GdsStation.GdsStructure) then
+  if Assigned(Structure) then
   begin
-    Result := GdsStation.GdsStructure.GetExtentBounds;
+    Result := Structure.GetExtentBounds;
   end;
 end;
 
 
 function BGRAColor(AColor: TColor): TBGRAPixel; inline;
 begin
-  Result := ColorToBGRA(ColorToRGB(AColor))
+  Result := ColorToBGRA(ColorToRGB(AColor));
 end;
+
 
 procedure TGdsView.HandlePaint(Sender: TObject);
 var
@@ -227,15 +248,17 @@ var
   textHeight: integer;
   startTime, endTime: TDateTime;
 
+
   procedure DrawExample(ACanvas: TCanvas);
   var
     BGRABitmap: TBGRABitmap;
   begin
     BGRABitmap := TBGRABitmap.Create(ClientWidth, ClientHeight); //, BGRAColor(clBlue));
     try
-       BGRABitmap.DrawLine(0, 0, ClientWidth, ClientHeight, BGRAColor(clYellow), False);
-       BGRABitmap.DrawLineAntialias(0, ClientHeight, ClientWidth, 0, BGRAColor(clYellow), False);
-       BGRABitmap.Draw(ACanvas, 0, 0, False);
+      BGRABitmap.DrawLine(0, 0, ClientWidth, ClientHeight, BGRAColor(clYellow), False);
+      BGRABitmap.DrawLineAntialias(0, ClientHeight, ClientWidth, 0,
+        BGRAColor(clYellow), False);
+      BGRABitmap.Draw(ACanvas, 0, 0, False);
     finally
       FreeAndNil(BGRABitmap);
     end;
@@ -279,10 +302,10 @@ var
     Canvas.Font.Size := 18;
     textHeight := trunc(Canvas.Font.Size * 1.8);
     textY := 10;
-    ACanvas.TextOut(10, textY, GdsStation.GdsStructure.Name);
+    ACanvas.TextOut(10, textY, Structure.Name);
     Inc(textY, textHeight);
     ACanvas.TextOut(10, textY, StringFromRectangleF(
-      GdsStation.GdsStructure.GetExtentBounds));
+      Structure.GetExtentBounds));
     if GdsStation.GdsElement <> nil then
     begin
       stringList := TStringList.Create;
@@ -295,7 +318,8 @@ var
       stringList.Free;
     end;
     ACanvas.TextOut(10, ClientHeight - textHeight,
-      Format('DRAWTIME: %d msecs %6.3f secs', [FDrawMilliSeconds, FDrawMilliSeconds / 1000]));
+      Format('DRAWTIME: %d msecs %6.3f secs', [FDrawMilliSeconds,
+      FDrawMilliSeconds / 1000]));
   end;
 
 begin
@@ -305,7 +329,7 @@ begin
   begin
     Canvas.DrawFocusRect(ClientRect);
   end;
-  if GdsStation.GdsStructure = nil then
+  if Structure = nil then
   begin
     DrawExample(Canvas);
     DrawColors(Canvas);
@@ -313,7 +337,7 @@ begin
   end;
   FSelectedDrawing := 0;
   startTime := Time;
-  DrawStructure(Canvas, GdsStation.GdsStructure);
+  DrawStructure(Canvas, Structure);
   endTime := Time;
   FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
   DrawExample(Canvas);

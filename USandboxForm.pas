@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, PairSplitter, ExtCtrls,
-  StdCtrls, OpenGLContext, GL, GLU, UViewport;
+  StdCtrls, OpenGLContext, GL, GLU, UViewport, UMultiEvent, UGds;
 
 type
 
@@ -27,6 +27,7 @@ type
     procedure Button1KeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
     procedure OpenGLControlPaint(Sender: TObject);
     procedure OpenGLControlResize(Sender: TObject);
     procedure PairSplitterSide1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -34,10 +35,13 @@ type
     procedure PanelAnyExit(Sender: TObject);
     procedure PanelAnyEnter(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
-  private
-    FViewport: TViewport;
-  public
 
+    procedure OnUpdate(Sender, Arg: TObject);
+
+  private
+    FStructure: TGdsStructure;
+    FViewport: TViewport;
+    FEvents: TMultiEventReceive;
   end;
 
 var
@@ -48,19 +52,29 @@ implementation
 {$R *.lfm}
 
 uses
-  LazLogger, UGds, UGdsStation, UGeometryUtils, UGdsBrowserForm;
+  LazLogger, UGdsStation, UGeometryUtils;
 
   { TSandboxForm }
 
 procedure TSandboxForm.FormCreate(Sender: TObject);
 begin
   FViewport := TViewPort.Create;
+  FEvents := TMultiEventReceive.Create(nil);
+  FEvents.OnUpdate := @OnUpdate;
+  GdsStation.Events.Add(FEvents);
 end;
 
 
 procedure TSandboxForm.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FViewport);
+  FreeAndNil(FEvents);
+end;
+
+
+procedure TSandboxForm.FormResize(Sender: TObject);
+begin
+
 end;
 
 
@@ -82,16 +96,15 @@ begin
   end;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  E := GdsStation.GdsElement;
-  if Assigned(GdsStation.GdsStructure) then
+  if Assigned(FStructure) then
   begin
-    bounds := GdsStation.GdsStructure.GetExtentBounds;
+    bounds := FStructure.GetExtentBounds;
     FViewport.SetWorldBounds(bounds);
     glTranslatef(FViewPort.GetPortCenter.x, FViewPort.GetPortCenter.y, 0.0);
     glScalef(FViewport.WorldScale * 0.9, FViewport.WorldScale * 0.9, 0.0);
     glTranslatef(-FViewPort.WorldCenter.x, -FViewPort.WorldCenter.y, 0.0);
 
-    for E in GdsStation.GdsStructure.Elements do
+    for E in FStructure.Elements do
     begin
       if Length(E.Coords) >= 2 then
       begin
@@ -106,12 +119,13 @@ begin
     end;
   end;
   OpenGLControl.SwapBuffers;
+  Timer.Enabled := False;
 end;
 
 
 procedure TSandboxForm.OpenGLControlResize(Sender: TObject);
 begin
-
+  Timer.Enabled := True;
 end;
 
 
@@ -174,6 +188,16 @@ end;
 procedure TSandboxForm.TimerTimer(Sender: TObject);
 begin
   OpenGLControl.Invalidate;
+end;
+
+
+procedure TSandboxForm.OnUpdate(Sender, Arg: TObject);
+begin
+  if Arg.ClassType = TGdsStation then
+  begin
+    FStructure := (Arg as TGdsStation).GdsStructure;
+    Timer.Enabled := True;
+  end;
 end;
 
 end.

@@ -10,7 +10,8 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, lazopenglcontext, UGdsBrowserForm, UGdsView, UGdsStation, USandboxForm;
+  Forms, lazopenglcontext, UGdsBrowserForm, UGdsView, UGdsStation, USandboxForm,
+  UMultiEvent;
 
 {$R *.res}
 

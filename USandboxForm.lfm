@@ -119,7 +119,7 @@ object SandboxForm: TSandboxForm
     end
   end
   object Timer: TTimer
-    Interval = 5
+    Interval = 1
     OnTimer = TimerTimer
     Left = 301
     Top = 69
