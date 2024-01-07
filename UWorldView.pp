@@ -149,6 +149,7 @@ begin
   Canvas.Line(round(hvPoint.x), 0, round(hvPoint.x), Canvas.Height);
 end;
 
+
 procedure TWorldDrawer.HLine(Canvas: TCanvas; AYValue: single);
 var
   xyPoint: TPointF;

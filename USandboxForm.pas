@@ -14,7 +14,14 @@ type
   { TSandboxForm }
 
   TSandboxForm = class(TForm)
-    OpenGLControl: TOpenGLControl;
+    TimerOnce: TTimer;
+    procedure TimerOnceTimer(Sender: TObject);
+  private
+    FStructure: TGdsStructure;
+    FViewport: TViewport;
+    FEvents: TMultiEventReceive;
+  published
+    OpenGView: TOpenGLControl;
     PairSplitter1: TPairSplitter;
     PairSplitterSide1: TPairSplitterSide;
     PairSplitterSide2: TPairSplitterSide;
@@ -28,20 +35,23 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
-    procedure OpenGLControlPaint(Sender: TObject);
-    procedure OpenGLControlResize(Sender: TObject);
-    procedure PairSplitterSide1MouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: integer);
+    procedure OpenGViewPaint(Sender: TObject);
+    procedure OpenGViewResize(Sender: TObject);
     procedure PanelAnyExit(Sender: TObject);
     procedure PanelAnyEnter(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
-
-    procedure OnUpdate(Sender, Arg: TObject);
-
+  public
+    procedure DrawElement(const E: TGdsElement);
+    procedure DrawStructure(const S: TGdsStructure);
+    procedure HandleUpdate(Sender, Arg: TObject);
+    procedure StrokeCoords(const ACoords: TCoords);
+    property Viewport: TViewport read FViewport;
   private
-    FStructure: TGdsStructure;
-    FViewport: TViewport;
-    FEvents: TMultiEventReceive;
+    procedure StrokeBoundary(const E: TGdsBoundary);
+    procedure StrokePath(const E: TGdsPath);
+    procedure StrokeSrefAt(const E: TGdsSref; X, Y: double);
+    procedure StrokeSref(const E: TGdsSref);
+    procedure StrokeAref(const E: TGdsAref);
   end;
 
 var
@@ -60,7 +70,7 @@ procedure TSandboxForm.FormCreate(Sender: TObject);
 begin
   FViewport := TViewPort.Create;
   FEvents := TMultiEventReceive.Create(nil);
-  FEvents.OnUpdate := @OnUpdate;
+  FEvents.OnUpdate := @HandleUpdate;
   GdsStation.Events.Add(FEvents);
 end;
 
@@ -78,22 +88,12 @@ begin
 end;
 
 
-procedure TSandboxForm.OpenGLControlPaint(Sender: TObject);
+procedure TSandboxForm.OpenGViewPaint(Sender: TObject);
 var
-  E: TGdsElement;
-  I: integer;
-  CE: TXY;
   bounds: TRectangleF;
 begin
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  with OpenGLControl do
-  begin
-    gluOrtho2D(0, Width, 0, Height);
-    FViewport.SetPortSize(Width, Height);
-  end;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   if Assigned(FStructure) then
@@ -104,30 +104,32 @@ begin
     glScalef(FViewport.WorldScale * 0.9, FViewport.WorldScale * 0.9, 0.0);
     glTranslatef(-FViewPort.WorldCenter.x, -FViewPort.WorldCenter.y, 0.0);
 
-    for E in FStructure.Elements do
-    begin
-      if Length(E.Coords) >= 2 then
-      begin
-        glBegin(GL_LINE_STRIP);
-        for I := Low(E.Coords) to High(E.Coords) do
-        begin
-          CE := E.Coords[I];
-          glVertex2d(CE[0], CE[1]);
-        end;
-        glEnd();
-      end;
-    end;
+    DrawStructure(FStructure);
   end;
-  OpenGLControl.SwapBuffers;
+  OpenGView.SwapBuffers;
   Timer.Enabled := False;
 end;
 
 
-procedure TSandboxForm.OpenGLControlResize(Sender: TObject);
+procedure TSandboxForm.OpenGViewResize(Sender: TObject);
 begin
   Timer.Enabled := True;
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  with OpenGView do
+  begin
+    gluOrtho2D(0, Width, 0, Height);
+    FViewport.SetPortSize(Width, Height);
+  end;
 end;
 
+{ Fix: Can't draw open first in Windows }
+procedure TSandboxForm.TimerOnceTimer(Sender: TObject);
+begin
+  HandleUpdate(nil, GdsStation);
+  OpenGViewResize(nil);
+  TimerOnce.Enabled := False;
+end;
 
 procedure TSandboxForm.Button1KeyDown(Sender: TObject; var Key: word;
   Shift: TShiftState);
@@ -149,12 +151,6 @@ begin
   DebugLn('');
 end;
 
-
-procedure TSandboxForm.PairSplitterSide1MouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: integer);
-begin
-
-end;
 
 
 procedure TSandboxForm.PanelAnyExit(Sender: TObject);
@@ -187,17 +183,111 @@ end;
 
 procedure TSandboxForm.TimerTimer(Sender: TObject);
 begin
-  OpenGLControl.Invalidate;
+  OpenGView.Invalidate;
 end;
 
 
-procedure TSandboxForm.OnUpdate(Sender, Arg: TObject);
+procedure TSandboxForm.DrawElement(const E: TGdsElement);
+begin
+  if E.ClassType = TGdsBoundary then
+  begin
+    StrokeBoundary((E as TGdsBoundary));
+    Exit;
+  end;
+  if E.ClassType = TGdsPath then
+  begin
+    StrokePath((E as TGdsPath));
+    Exit;
+  end;
+  if E.ClassType = TGdsSref then
+  begin
+    StrokeSref((E as TGdsSref));
+    Exit;
+  end;
+  if E.ClassType = TGdsAref then
+  begin
+    StrokeAref((E as TGdsAref));
+    Exit;
+  end;
+end;
+
+
+procedure TSandboxForm.DrawStructure(const S: TGdsStructure);
+var
+  E: TGdsElement;
+begin
+  for E in S.Elements do
+  begin
+    DrawElement(E);
+  end;
+end;
+
+
+procedure TSandboxForm.HandleUpdate(Sender, Arg: TObject);
 begin
   if Arg.ClassType = TGdsStation then
   begin
     FStructure := (Arg as TGdsStation).GdsStructure;
+    {$IFDEF Windows}
+    OpenGViewResize(nil);
+    {$ENDIF}
     Timer.Enabled := True;
   end;
+end;
+
+
+procedure TSandboxForm.StrokeCoords(const ACoords: TCoords);
+var
+  I: integer;
+  CE: TXY;
+begin
+  glBegin(GL_LINE_STRIP);
+  for I := Low(ACoords) to High(ACoords) do
+  begin
+    CE := ACoords[I];
+    glVertex2d(CE[0], CE[1]);
+  end;
+  glEnd();
+end;
+
+
+procedure TSandboxForm.StrokeBoundary(const E: TGdsBoundary);
+begin
+  StrokeCoords(E.Coords);
+end;
+
+
+procedure TSandboxForm.StrokePath(const E: TGdsPath);
+begin
+  StrokeCoords(E.OutlineCoords);
+end;
+
+
+procedure TSandboxForm.StrokeSrefAt(const E: TGdsSref; X, Y: double);
+begin
+  glPushMatrix();
+  glTranslated(X, Y, 0.0);
+  glScaled(E.Mag, E.Mag, 1.0);
+  glRotated(E.AngleDeg, 0.0, 0.0, 0.1);
+  if E.IsRefrected then
+    glScaled(1.0, -1.0, 0.0);
+  DrawStructure(E.RefStructure);
+  glPopMatrix();
+end;
+
+
+procedure TSandboxForm.StrokeSref(const E: TGdsSref);
+begin
+  StrokeSrefAt(E, E.Coords[0][0], E.Coords[0][1]);
+end;
+
+
+procedure TSandboxForm.StrokeAref(const E: TGdsAref);
+var
+  M: TAffineMatrix;
+begin
+  for M in E.RepeatedTransforms do
+    StrokeSrefAt(E, M[1, 3], M[2, 3]);
 end;
 
 end.

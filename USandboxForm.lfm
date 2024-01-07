@@ -37,7 +37,6 @@ object SandboxForm: TSandboxForm
       ChildSizing.ControlsPerLine = 3
       ClientWidth = 1
       ClientHeight = 530
-      OnMouseDown = PairSplitterSide1MouseDown
       object Panel1: TPanel
         Left = 0
         Height = 530
@@ -101,7 +100,7 @@ object SandboxForm: TSandboxForm
       Width = 725
       ClientWidth = 725
       ClientHeight = 530
-      object OpenGLControl: TOpenGLControl
+      object OpenGView: TOpenGLControl
         AnchorSideLeft.Control = PairSplitterSide2
         AnchorSideTop.Control = PairSplitterSide2
         AnchorSideRight.Control = PairSplitterSide2
@@ -114,7 +113,8 @@ object SandboxForm: TSandboxForm
         Width = 725
         Anchors = [akTop, akLeft, akRight, akBottom]
         AutoResizeViewport = True
-        OnPaint = OpenGLControlPaint
+        OnPaint = OpenGViewPaint
+        OnResize = OpenGViewResize
       end
     end
   end
@@ -123,5 +123,11 @@ object SandboxForm: TSandboxForm
     OnTimer = TimerTimer
     Left = 301
     Top = 69
+  end
+  object TimerOnce: TTimer
+    Enabled = False
+    OnTimer = TimerOnceTimer
+    Left = 250
+    Top = 60
   end
 end

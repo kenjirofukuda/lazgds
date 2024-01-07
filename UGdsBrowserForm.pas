@@ -113,6 +113,9 @@ end;
 procedure TGdsBrowserForm.OpenSandboxMenuItemClick(Sender: TObject);
 begin
   SandboxForm.Visible := True;
+  {$IFDEF Windows}
+  SandboxForm.TimerOnce.Enabled := True;
+  {$ENDIF}
 end;
 
 

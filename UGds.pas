@@ -67,6 +67,8 @@ type
     items: array [0 .. 5] of word;
   end;
 
+  TAffineMatrix = BGRATransform.TAffineMatrix;
+
   { TGdsObject }
 
   TGdsObject = class(TObject)
@@ -156,6 +158,9 @@ type
     function IsAbsMag: boolean;
     property RefName: string read FRefName;
     property RefStructure: TGdsStructure read GetRefStructure;
+    property Mag: double read FMag;
+    property AngleDeg: double read FAngleDeg;
+    function AngleRad: double;
   private
     function LookupTransform: TAffineMatrix;
   end;
@@ -1098,6 +1103,11 @@ end;
 function TGdsSref.IsAbsMag: boolean; inline;
 begin
   Result := (FStrans and $0002) <> 0;
+end;
+
+function TGdsSref.AngleRad: double;
+begin
+  Result := DegToRad(FAngleDeg);
 end;
 
 
