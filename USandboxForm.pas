@@ -5,11 +5,14 @@ unit USandboxForm;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, PairSplitter, ExtCtrls,
-  StdCtrls, OpenGLContext, GL, GLU, UViewport, UMultiEvent, UGds;
+  Classes, SysUtils, fgl,
+  Forms, Controls, Graphics, Dialogs, PairSplitter, ExtCtrls, StdCtrls,
+  OpenGLContext, GL, GLU, UViewport, UMultiEvent, UGds, FPImage;
 
 type
 
+  TLayerToFPColorMap = specialize TFPGMap<int32, TFPColor>;
+  TGLTransparency = 0..255;
 
   { TSandboxForm }
 
@@ -20,6 +23,8 @@ type
     FStructure: TGdsStructure;
     FViewport: TViewport;
     FEvents: TMultiEventReceive;
+    FLayerToFPColorMap :TLayerToFPColorMap;
+    FTransparency: TGLTransparency;
   published
     OpenGView: TOpenGLControl;
     PairSplitter1: TPairSplitter;
@@ -52,7 +57,11 @@ type
     procedure StrokeSrefAt(const E: TGdsSref; X, Y: double);
     procedure StrokeSref(const E: TGdsSref);
     procedure StrokeAref(const E: TGdsAref);
+    procedure SetTransparency(ATransparency: TGLTransparency);
+    procedure SetGLColor(AColor: TFPColor);
+    function LayerToFPColor(ALayer: int32): TFPColor;
   end;
+
 
 var
   SandboxForm: TSandboxForm;
@@ -62,7 +71,7 @@ implementation
 {$R *.lfm}
 
 uses
-  LazLogger, UGdsStation, UGeometryUtils;
+  LazLogger, UGdsStation, UGeometryUtils, UColorUtils;
 
   { TSandboxForm }
 
@@ -70,6 +79,7 @@ procedure TSandboxForm.FormCreate(Sender: TObject);
 begin
   FViewport := TViewPort.Create;
   FEvents := TMultiEventReceive.Create(nil);
+  SetTransparency(0);
   FEvents.OnUpdate := @HandleUpdate;
   GdsStation.Events.Add(FEvents);
 end;
@@ -79,6 +89,7 @@ procedure TSandboxForm.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FViewport);
   FreeAndNil(FEvents);
+  FreeAndNil(FLayerToFPColorMap);
 end;
 
 
@@ -191,11 +202,13 @@ procedure TSandboxForm.DrawElement(const E: TGdsElement);
 begin
   if E.ClassType = TGdsBoundary then
   begin
+    SetGLColor(LayerToFPColor((E as TGdsBoundary).Layer));
     StrokeBoundary((E as TGdsBoundary));
     Exit;
   end;
   if E.ClassType = TGdsPath then
   begin
+    SetGLColor(LayerToFPColor((E as TGdsPath).Layer));
     StrokePath((E as TGdsPath));
     Exit;
   end;
@@ -289,5 +302,45 @@ begin
   for M in E.RepeatedTransforms do
     StrokeSrefAt(E, M[1, 3], M[2, 3]);
 end;
+
+procedure TSandboxForm.SetTransparency(ATransparency: TGLTransparency);
+begin
+  FTransparency := ATransparency;
+end;
+
+
+function TSandboxForm.LayerToFPColor(ALayer: int32): TFPColor;
+var
+  layers: TInt32s;
+  colors: TColors;
+  i: integer;
+  colorFP: TFPColor;
+begin
+  if FLayerToFPColorMap = nil then
+  begin
+    FLayerToFPColorMap := TLayerToFPColorMap.Create;
+    layers := GdsStation.GdsLibrary.UsedLayerNumbers;
+    colors := ColorWheel(Length(layers), 0.7, 1.0, 0.0);
+    for i := Low(layers) to High(layers) do
+    begin
+      FLayerToFPColorMap[layers[i]] := TColorToFPColor(colors[i]);
+    end;
+  end;
+  try
+    colorFP := FLayerToFPColorMap[ALayer];
+  except
+    on Exception do
+      colorFP := TColorToFPColor(clGray);
+  end;
+  Result := colorFP;
+end;
+
+
+procedure TSandboxForm.SetGLColor(AColor: TFPColor);
+begin
+  with AColor do
+    glColor4us(red, green, blue, (255 - FTransparency) shl 8);
+end;
+
 
 end.
