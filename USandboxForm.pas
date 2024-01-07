@@ -25,6 +25,8 @@ type
     FEvents: TMultiEventReceive;
     FLayerToFPColorMap :TLayerToFPColorMap;
     FTransparency: TGLTransparency;
+    FFontColor: TFPColor;
+    FDrawMilliSeconds: int64;
   published
     OpenGLView: TOpenGLControl;
     PairSplitter1: TPairSplitter;
@@ -59,6 +61,7 @@ type
     procedure StrokeAref(const E: TGdsAref);
     procedure SetTransparency(ATransparency: TGLTransparency);
     procedure SetGLColor(AColor: TFPColor);
+ //   procedure SimpleTextOut(AX, AY: Integer; const AText: String);
     function LayerToFPColor(ALayer: int32): TFPColor;
   end;
 
@@ -71,15 +74,25 @@ implementation
 {$R *.lfm}
 
 uses
-  LazLogger, UGdsStation, UGeometryUtils, UColorUtils;
+  LazLogger, DateUtils, UGdsStation, UGeometryUtils, UColorUtils {, GLUT};
 
   { TSandboxForm }
 
 procedure TSandboxForm.FormCreate(Sender: TObject);
+var
+  CmdCount : Integer;
+  Cmd : Array of Pchar;
+  I: Integer;
 begin
+  //CmdCount := Paramcount+1;
+  //SetLength(Cmd,CmdCount);
+  //for I := 0 to CmdCount - 1 do
+  //   Cmd[I] := PChar(ParamStr(I));
+  //glutInit (@CmdCount,@Cmd);
   FViewport := TViewPort.Create;
   FEvents := TMultiEventReceive.Create(nil);
   SetTransparency(0);
+  FFontColor := TColorToFPColor(clYellow);
   FEvents.OnUpdate := @HandleUpdate;
   GdsStation.Events.Add(FEvents);
 end;
@@ -102,6 +115,7 @@ end;
 procedure TSandboxForm.OpenGLViewPaint(Sender: TObject);
 var
   bounds: TRectangleF;
+  startTime, endTime: TDateTime;
 begin
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -114,9 +128,16 @@ begin
     glTranslatef(FViewPort.GetPortCenter.x, FViewPort.GetPortCenter.y, 0.0);
     glScalef(FViewport.WorldScale * 0.9, FViewport.WorldScale * 0.9, 0.0);
     glTranslatef(-FViewPort.WorldCenter.x, -FViewPort.WorldCenter.y, 0.0);
-
+    startTime := Time;
     DrawStructure(FStructure);
+    endTime := Time;
+    FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
+    DebugLn( Format('DRAWTIME: %d msecs %6.3f secs', [FDrawMilliSeconds,
+      FDrawMilliSeconds / 1000]));
   end;
+//  glMatrixMode(GL_MODELVIEW);
+//  glLoadIdentity();
+//  SimpleTextOut(0, 0, 'DRAWTIME:');
   OpenGLView.SwapBuffers;
   RedrawTimer.Enabled := False;
 end;
@@ -339,5 +360,19 @@ begin
     glColor4us(red, green, blue, (255 - FTransparency) shl 8);
 end;
 
+
+//procedure TSandboxForm.SimpleTextOut(AX, AY: Integer; const AText: String);
+//const
+//  X_OFFSET = 0;
+//  Y_OFFSET = 10;
+//var
+//  i: Integer;
+//begin
+//  SetGLColor(FFontColor);
+//  glRasterPos2i(AX + X_OFFSET, AY + Y_OFFSET);
+//  for i := 1 to Length(AText) do
+//    glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(AText[i]));
+//
+//end;
 
 end.
