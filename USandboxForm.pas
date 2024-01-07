@@ -17,8 +17,8 @@ type
   { TSandboxForm }
 
   TSandboxForm = class(TForm)
-    TimerOnce: TTimer;
-    procedure TimerOnceTimer(Sender: TObject);
+    OnceTimer: TTimer;
+    procedure OnceTimerTimer(Sender: TObject);
   private
     FStructure: TGdsStructure;
     FViewport: TViewport;
@@ -26,25 +26,25 @@ type
     FLayerToFPColorMap :TLayerToFPColorMap;
     FTransparency: TGLTransparency;
   published
-    OpenGView: TOpenGLControl;
+    OpenGLView: TOpenGLControl;
     PairSplitter1: TPairSplitter;
     PairSplitterSide1: TPairSplitterSide;
     PairSplitterSide2: TPairSplitterSide;
     Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
-    Timer: TTimer;
+    RedrawTimer: TTimer;
     procedure Button1KeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure Button1KeyPress(Sender: TObject; var Key: char);
     procedure Button1KeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
-    procedure OpenGViewPaint(Sender: TObject);
-    procedure OpenGViewResize(Sender: TObject);
+    procedure OpenGLViewPaint(Sender: TObject);
+    procedure OpenGLViewResize(Sender: TObject);
     procedure PanelAnyExit(Sender: TObject);
     procedure PanelAnyEnter(Sender: TObject);
-    procedure TimerTimer(Sender: TObject);
+    procedure RedrawTimerTimer(Sender: TObject);
   public
     procedure DrawElement(const E: TGdsElement);
     procedure DrawStructure(const S: TGdsStructure);
@@ -99,7 +99,7 @@ begin
 end;
 
 
-procedure TSandboxForm.OpenGViewPaint(Sender: TObject);
+procedure TSandboxForm.OpenGLViewPaint(Sender: TObject);
 var
   bounds: TRectangleF;
 begin
@@ -117,17 +117,17 @@ begin
 
     DrawStructure(FStructure);
   end;
-  OpenGView.SwapBuffers;
-  Timer.Enabled := False;
+  OpenGLView.SwapBuffers;
+  RedrawTimer.Enabled := False;
 end;
 
 
-procedure TSandboxForm.OpenGViewResize(Sender: TObject);
+procedure TSandboxForm.OpenGLViewResize(Sender: TObject);
 begin
-  Timer.Enabled := True;
+  RedrawTimer.Enabled := True;
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  with OpenGView do
+  with OpenGLView do
   begin
     gluOrtho2D(0, Width, 0, Height);
     FViewport.SetPortSize(Width, Height);
@@ -135,12 +135,13 @@ begin
 end;
 
 { Fix: Can't draw open first in Windows }
-procedure TSandboxForm.TimerOnceTimer(Sender: TObject);
+procedure TSandboxForm.OnceTimerTimer(Sender: TObject);
 begin
+  OpenGLViewResize(nil);
   HandleUpdate(nil, GdsStation);
-  OpenGViewResize(nil);
-  TimerOnce.Enabled := False;
+  OnceTimer.Enabled := False;
 end;
+
 
 procedure TSandboxForm.Button1KeyDown(Sender: TObject; var Key: word;
   Shift: TShiftState);
@@ -152,7 +153,6 @@ end;
 procedure TSandboxForm.Button1KeyPress(Sender: TObject; var Key: char);
 begin
   DebugLn('TSandboxForm.Button1KeyPress(%d)', [integer(Key)]);
-
 end;
 
 
@@ -161,7 +161,6 @@ begin
   DebugLn('TSandboxForm.Button1KeyUp(%d)', [Key]);
   DebugLn('');
 end;
-
 
 
 procedure TSandboxForm.PanelAnyExit(Sender: TObject);
@@ -174,7 +173,6 @@ begin
       BevelWidth := 1;
     end;
   end;
-
 end;
 
 
@@ -188,13 +186,12 @@ begin
       BevelWidth := 3;
     end;
   end;
-
 end;
 
 
-procedure TSandboxForm.TimerTimer(Sender: TObject);
+procedure TSandboxForm.RedrawTimerTimer(Sender: TObject);
 begin
-  OpenGView.Invalidate;
+  OpenGLView.Invalidate;
 end;
 
 
@@ -242,9 +239,9 @@ begin
   begin
     FStructure := (Arg as TGdsStation).GdsStructure;
     {$IFDEF Windows}
-    OpenGViewResize(nil);
+    OpenGLViewResize(nil);
     {$ENDIF}
-    Timer.Enabled := True;
+    RedrawTimer.Enabled := True;
   end;
 end;
 

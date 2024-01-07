@@ -100,7 +100,7 @@ object SandboxForm: TSandboxForm
       Width = 725
       ClientWidth = 725
       ClientHeight = 530
-      object OpenGView: TOpenGLControl
+      object OpenGLView: TOpenGLControl
         AnchorSideLeft.Control = PairSplitterSide2
         AnchorSideTop.Control = PairSplitterSide2
         AnchorSideRight.Control = PairSplitterSide2
@@ -113,20 +113,20 @@ object SandboxForm: TSandboxForm
         Width = 725
         Anchors = [akTop, akLeft, akRight, akBottom]
         AutoResizeViewport = True
-        OnPaint = OpenGViewPaint
-        OnResize = OpenGViewResize
+        OnPaint = OpenGLViewPaint
+        OnResize = OpenGLViewResize
       end
     end
   end
-  object Timer: TTimer
+  object RedrawTimer: TTimer
     Interval = 1
-    OnTimer = TimerTimer
+    OnTimer = RedrawTimerTimer
     Left = 301
     Top = 69
   end
-  object TimerOnce: TTimer
+  object OnceTimer: TTimer
     Enabled = False
-    OnTimer = TimerOnceTimer
+    OnTimer = OnceTimerTimer
     Left = 250
     Top = 60
   end
