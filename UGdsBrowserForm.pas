@@ -39,8 +39,6 @@ type
   published
 
     procedure OpenSandboxMenuItemClick(Sender: TObject);
-    procedure PairSplitterSideCanvasMouseDown(Sender: TObject;
-      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure QuitMenuItemClick(Sender: TObject);
     procedure OpenGdsFile(Sender: TObject);
 
@@ -119,13 +117,6 @@ begin
 end;
 
 
-procedure TGdsBrowserForm.PairSplitterSideCanvasMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-
-end;
-
-
 function ConfigFilePath: string;
 var
   path: string;
@@ -181,13 +172,11 @@ begin
 end;
 
 
-
-
 procedure TGdsBrowserForm.StructureListBoxSelectionChange(Sender: TObject;
   User: boolean);
 var
   i: integer;
-  S: TGdsStructure;
+  S, GdsStructure: TGdsStructure;
   E: TGdsElement;
 begin
   i := StructureListBox.ItemIndex;

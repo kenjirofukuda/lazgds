@@ -23,7 +23,7 @@ type
     FStructure: TGdsStructure;
     FViewport: TViewport;
     FEvents: TMultiEventReceive;
-    FLayerToFPColorMap :TLayerToFPColorMap;
+    FLayerToFPColorMap: TLayerToFPColorMap;
     FTransparency: TGLTransparency;
     FFontColor: TFPColor;
     FDrawMilliSeconds: int64;
@@ -41,7 +41,6 @@ type
     procedure Button1KeyUp(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormResize(Sender: TObject);
     procedure OpenGLViewPaint(Sender: TObject);
     procedure OpenGLViewResize(Sender: TObject);
     procedure PanelAnyExit(Sender: TObject);
@@ -61,7 +60,7 @@ type
     procedure StrokeAref(const E: TGdsAref);
     procedure SetTransparency(ATransparency: TGLTransparency);
     procedure SetGLColor(AColor: TFPColor);
- //   procedure SimpleTextOut(AX, AY: Integer; const AText: String);
+    //   procedure SimpleTextOut(AX, AY: Integer; const AText: String);
     function LayerToFPColor(ALayer: int32): TFPColor;
   end;
 
@@ -80,9 +79,9 @@ uses
 
 procedure TSandboxForm.FormCreate(Sender: TObject);
 var
-  CmdCount : Integer;
-  Cmd : Array of Pchar;
-  I: Integer;
+  CmdCount: integer;
+  Cmd: array of PChar;
+  I: integer;
 begin
   //CmdCount := Paramcount+1;
   //SetLength(Cmd,CmdCount);
@@ -106,12 +105,6 @@ begin
 end;
 
 
-procedure TSandboxForm.FormResize(Sender: TObject);
-begin
-
-end;
-
-
 procedure TSandboxForm.OpenGLViewPaint(Sender: TObject);
 var
   bounds: TRectangleF;
@@ -132,12 +125,12 @@ begin
     DrawStructure(FStructure);
     endTime := Time;
     FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
-    DebugLn( Format('DRAWTIME: %d msecs %6.3f secs', [FDrawMilliSeconds,
-      FDrawMilliSeconds / 1000]));
+    DebugLn(Format('DRAWTIME: %d msecs %6.3f secs',
+      [FDrawMilliSeconds, FDrawMilliSeconds / 1000]));
   end;
-//  glMatrixMode(GL_MODELVIEW);
-//  glLoadIdentity();
-//  SimpleTextOut(0, 0, 'DRAWTIME:');
+  //  glMatrixMode(GL_MODELVIEW);
+  //  glLoadIdentity();
+  //  SimpleTextOut(0, 0, 'DRAWTIME:');
   OpenGLView.SwapBuffers;
   RedrawTimer.Enabled := False;
 end;
@@ -321,6 +314,7 @@ begin
     StrokeSrefAt(E, M[1, 3], M[2, 3]);
 end;
 
+
 procedure TSandboxForm.SetTransparency(ATransparency: TGLTransparency);
 begin
   FTransparency := ATransparency;
@@ -372,7 +366,7 @@ end;
 //  glRasterPos2i(AX + X_OFFSET, AY + Y_OFFSET);
 //  for i := 1 to Length(AText) do
 //    glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(AText[i]));
-//
+
 //end;
 
 end.
