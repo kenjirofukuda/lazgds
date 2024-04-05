@@ -129,7 +129,6 @@ object GdsBrowserForm: TGdsBrowserForm
         Width = 1021
         ClientWidth = 1021
         ClientHeight = 851
-        OnMouseDown = PairSplitterSideCanvasMouseDown
         object DummyPanel: TPanel
           AnchorSideLeft.Control = PairSplitterSideCanvas
           AnchorSideTop.Control = PairSplitterSideCanvas

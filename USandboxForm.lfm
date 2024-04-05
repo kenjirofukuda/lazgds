@@ -1,7 +1,7 @@
 object SandboxForm: TSandboxForm
-  Left = 1068
+  Left = -841
   Height = 530
-  Top = 189
+  Top = 509
   Width = 731
   Caption = 'Sandbox'
   ChildSizing.EnlargeHorizontal = crsScaleChilds
