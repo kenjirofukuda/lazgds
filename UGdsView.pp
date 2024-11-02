@@ -340,7 +340,7 @@ begin
   DrawStructure(Canvas, Structure);
   endTime := Time;
   FDrawMilliSeconds := MilliSecondsBetween(endTime, startTime);
-  DrawExample(Canvas);
+  //DrawExample(Canvas);
   DrawDebugInfo(Canvas);
 end;
 

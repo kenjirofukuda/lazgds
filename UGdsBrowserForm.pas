@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  Menus, ExtCtrls, JSONPropStorage, PairSplitter, UGds, UGdsView, UGdsStation;
+  Menus, ExtCtrls, JSONPropStorage, PairSplitter, UGds, UGdsView, UGdsStation, Types;
 
 type
 
@@ -26,6 +26,7 @@ type
     PairSplitterSideLists: TPairSplitterSide;
     PairSplitterSideCanvas: TPairSplitterSide;
     DummyPanel: TPanel;
+    ProgressBar1: TProgressBar;
     StatusBar: TStatusBar;
     StructureListBox: TListBox;
     XYListView: TListView;
@@ -33,6 +34,8 @@ type
     ChooseGdsMenuItem: TMenuItem;
     Separator1: TMenuItem;
     QuitMenuItem: TMenuItem;
+    procedure ProgressBar1ContextPopup(Sender: TObject; MousePos: TPoint;
+      var Handled: Boolean);
   private
     FGdsInform: TGdsInform;
     FGdsView: TGdsView;
@@ -107,6 +110,11 @@ begin
   GdsBrowserForm.Close;
 end;
 
+procedure TGdsBrowserForm.ProgressBar1ContextPopup(Sender: TObject;
+  MousePos: TPoint; var Handled: Boolean);
+begin
+
+end;
 
 procedure TGdsBrowserForm.OpenSandboxMenuItemClick(Sender: TObject);
 begin
