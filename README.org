@@ -1,0 +1,8 @@
+#+TITLE: lazgds
+#+AUTHOR: kenjirofukuda
+
+Lazarus (Free Pascal) による GdsFeel実装
+
+[[./Note.org][開発ノート]]
+
+

@@ -1,7 +1,7 @@
 object SandboxForm: TSandboxForm
-  Left = -841
+  Left = 587
   Height = 530
-  Top = 509
+  Top = 1089
   Width = 731
   Caption = 'Sandbox'
   ChildSizing.EnlargeHorizontal = crsScaleChilds
@@ -10,7 +10,7 @@ object SandboxForm: TSandboxForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '3.0.0.3'
+  LCLVersion = '3.4.0.0'
   object PairSplitter1: TPairSplitter
     AnchorSideLeft.Control = Owner
     AnchorSideTop.Control = Owner
@@ -121,7 +121,7 @@ object SandboxForm: TSandboxForm
   object RedrawTimer: TTimer
     Interval = 1
     OnTimer = RedrawTimerTimer
-    Left = 301
+    Left = 336
     Top = 69
   end
   object OnceTimer: TTimer
