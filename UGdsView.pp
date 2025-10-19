@@ -167,9 +167,14 @@ procedure TArefDrawer.DrawOn(ACanvas: TCanvas);
 var
   eAref: TGdsAref;
   otx: TAffineMatrix;
+  mats: TAffineMatrixArray;
+  stop: boolean;
 begin
   eAref := (Element as TGdsAref);
-  for otx in eAref.RepeatedTransforms do
+  if eAref.RefName = 'PC' then
+     stop := true;
+  mats := eAref.RepeatedTransforms;
+  for otx in mats do
   begin
     Viewport.PushTransform(otx);
     GdsView.DrawStructure(ACanvas, eAref.RefStructure);

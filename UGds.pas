@@ -88,6 +88,7 @@ type
 
   TGdsElement = class(TGdsObject)
   private
+    FTypeCode: integer;
     FCoords: TCoords;
     FLayer: integer;
     FDataType: integer;
@@ -191,10 +192,12 @@ type
   TGdsText = class(TGdsSref)
   private
     FContents: string;
+    FWidth: double;
   public
     function LookupExtentBounds: TRectangleF; override;
     function ToString: string; override;
     property Contents: string read FContents;
+    property Width: double read FWidth write FWidth;
   end;
 
 
@@ -748,7 +751,10 @@ begin
       FElement.FLayer := ExtractInt2(ABytes)[0];
     htWIDTH:
     begin
-      (FElement as TGdsPath).Width := ExtractInt4(ABytes)[0] * FLibrary.FUserUnit;
+      if FElement is TGdsPath then
+         (FElement as TGdsPath).Width := ExtractInt4(ABytes)[0] * FLibrary.FUserUnit;
+      if FElement is TGdsText then
+         (FElement as TGdsText).Width := ExtractInt4(ABytes)[0] * FLibrary.FUserUnit;
     end;
     htSTRANS:
       (FElement as TGdsSref).FStrans := ExtractBitmask(ABytes);
@@ -978,6 +984,7 @@ begin
   if clazz = nil then
     Exit(nil);
   Result := clazz.Create;
+  Result.FTypeCode := AByte;
 end;
 
 
